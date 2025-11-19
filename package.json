@@ -22,20 +22,6 @@
   "keywords": ["git", "education", "game", "learning"],
   "author": "",
   "license": "ISC",
-  "lint-staged": {
-    "backend/**/*.ts": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "frontend/**/*.{ts,tsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "shared/**/*.ts": [
-      "eslint --fix",
-      "prettier --write"
-    ]
-  },
   "devDependencies": {
     "concurrently": "^8.2.2",
     "husky": "^8.0.3",
