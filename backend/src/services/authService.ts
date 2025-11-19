@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt';
-import jwt, { SignOptions } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import db from '../database/db';
 import { User, CreateUserInput } from '../models/User';
 import { CreateUserProgressInput } from '../models/UserProgress';
@@ -76,8 +76,8 @@ export class AuthService {
    */
   private static generateToken(userId: string, username: string): string {
     const payload = { userId, username };
-    return jwt.sign(payload, JWT_SECRET, { 
-      expiresIn: JWT_EXPIRES_IN as jwt.SignOptions['expiresIn']
+    return jwt.sign(payload, JWT_SECRET, {
+      expiresIn: JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'],
     });
   }
 
@@ -99,18 +99,14 @@ export class AuthService {
     }
 
     // Check if email already exists
-    const existingUser = await db<User>('users')
-      .where({ email })
-      .first();
+    const existingUser = await db<User>('users').where({ email }).first();
 
     if (existingUser) {
       throw new Error('Email already registered');
     }
 
     // Check if username already exists
-    const existingUsername = await db<User>('users')
-      .where({ username })
-      .first();
+    const existingUsername = await db<User>('users').where({ username }).first();
 
     if (existingUsername) {
       throw new Error('Username already taken');
@@ -172,9 +168,7 @@ export class AuthService {
     const { email, password } = input;
 
     // Find user by email
-    const user = await db<User>('users')
-      .where({ email })
-      .first();
+    const user = await db<User>('users').where({ email }).first();
 
     if (!user) {
       throw new Error('Invalid email or password');
@@ -188,9 +182,7 @@ export class AuthService {
     }
 
     // Get user progress
-    const progress = await db('user_progress')
-      .where({ user_id: user.id })
-      .first();
+    const progress = await db('user_progress').where({ user_id: user.id }).first();
 
     // Generate JWT token
     const token = this.generateToken(user.id, user.username);
