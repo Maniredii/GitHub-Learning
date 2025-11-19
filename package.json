@@ -14,12 +14,31 @@
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "build:backend": "npm run build --workspace=backend",
     "build:frontend": "npm run build --workspace=frontend",
-    "build": "npm run build:backend && npm run build:frontend"
+    "build": "npm run build:backend && npm run build:frontend",
+    "prepare": "husky install",
+    "lint": "npm run lint --workspace=backend && npm run lint --workspace=frontend && npm run lint --workspace=shared",
+    "format": "npm run format --workspace=backend && npm run format --workspace=frontend && npm run format --workspace=shared"
   },
   "keywords": ["git", "education", "game", "learning"],
   "author": "",
   "license": "ISC",
+  "lint-staged": {
+    "backend/**/*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "frontend/**/*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "shared/**/*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.2.0"
   }
 }
