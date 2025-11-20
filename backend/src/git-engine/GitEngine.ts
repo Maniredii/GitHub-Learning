@@ -1,4 +1,4 @@
-import { Repository, Commit, Branch } from './models';
+import { Repository, Commit, Branch, PullRequest } from './models';
 import { FileTree } from 'shared/src/types';
 import { MergeEngine } from './MergeEngine';
 
@@ -775,5 +775,628 @@ export class GitEngine {
       message: `Restored '${filePath}' from HEAD`,
       output: '',
     };
+  }
+
+  /**
+   * git remote add <name> <url> - Register a remote repository
+   */
+  remoteAdd(name: string, url: string): GitResult {
+    try {
+      this.repository.addRemote(name, url);
+
+      return {
+        success: true,
+        message: `Remote '${name}' added`,
+        output: '',
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: `fatal: ${error.message}`,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * git remote -v - List configured remotes
+   */
+  remoteList(): GitResult {
+    const remotes = this.repository.remotes;
+
+    if (remotes.length === 0) {
+      return {
+        success: true,
+        message: 'No remotes configured',
+        output: '',
+      };
+    }
+
+    let output = '';
+    remotes.forEach((remote) => {
+      output += `${remote.name}\t${remote.url} (fetch)\n`;
+      output += `${remote.name}\t${remote.url} (push)\n`;
+    });
+
+    return {
+      success: true,
+      message: 'Remotes listed',
+      output: output,
+    };
+  }
+
+  /**
+   * git clone <url> - Create local copy of remote repository
+   */
+  clone(url: string): GitResult {
+    // Get the remote repository from global storage
+    const remoteRepo = Repository.getRemoteRepository(url);
+
+    if (!remoteRepo) {
+      return {
+        success: false,
+        message: `fatal: repository '${url}' not found`,
+        error: 'Remote repository does not exist',
+      };
+    }
+
+    // Clone commits and branches from remote
+    const { commits, branches } = remoteRepo.clone();
+
+    // Clear current repository state
+    this.repository.commits.clear();
+    this.repository.branches.clear();
+
+    // Add all commits from remote
+    commits.forEach((commit) => {
+      this.repository.addCommit(commit);
+    });
+
+    // Add all branches from remote
+    branches.forEach((branch) => {
+      this.repository.addBranch(branch);
+    });
+
+    // Set HEAD to main or master branch
+    const defaultBranch = branches.find((b) => b.name === 'main' || b.name === 'master');
+    if (defaultBranch) {
+      this.repository.updateHead(defaultBranch.name);
+
+      // Update working directory to match the default branch
+      const headCommit = this.repository.getCommit(defaultBranch.commitHash);
+      if (headCommit) {
+        this.repository.workingDirectory = { ...headCommit.tree };
+      }
+    } else if (branches.length > 0) {
+      // Use first branch if no default found
+      this.repository.updateHead(branches[0].name);
+      const headCommit = this.repository.getCommit(branches[0].commitHash);
+      if (headCommit) {
+        this.repository.workingDirectory = { ...headCommit.tree };
+      }
+    }
+
+    // Add the remote as 'origin'
+    this.repository.addRemote('origin', url);
+    this.repository.updateRemoteBranches('origin', branches);
+
+    // Clear staging area
+    this.repository.stagingArea = {};
+
+    return {
+      success: true,
+      message: `Cloned repository from '${url}'`,
+      output: `Cloning into repository...\nremote: Counting objects: ${commits.length}, done.\nremote: Total ${commits.length} (delta 0), reused 0 (delta 0)\nReceiving objects: 100% (${commits.length}/${commits.length}), done.`,
+    };
+  }
+
+  /**
+   * git push <remote> <branch> - Upload commits to remote
+   */
+  push(remoteName: string, branchName: string): GitResult {
+    // Get the remote
+    const remote = this.repository.getRemote(remoteName);
+    if (!remote) {
+      return {
+        success: false,
+        message: `fatal: '${remoteName}' does not appear to be a git repository`,
+        error: `Remote '${remoteName}' not found`,
+      };
+    }
+
+    // Get the local branch
+    const localBranch = this.repository.getBranch(branchName);
+    if (!localBranch) {
+      return {
+        success: false,
+        message: `error: src refspec ${branchName} does not match any`,
+        error: `Branch '${branchName}' not found`,
+      };
+    }
+
+    // Get the remote repository
+    const remoteRepo = Repository.getRemoteRepository(remote.url);
+    if (!remoteRepo) {
+      return {
+        success: false,
+        message: `fatal: repository '${remote.url}' not found`,
+        error: 'Remote repository does not exist',
+      };
+    }
+
+    // Get all commits from local branch that need to be pushed
+    const localCommit = this.repository.getCommit(localBranch.commitHash);
+    if (!localCommit) {
+      return {
+        success: false,
+        message: 'fatal: No commits to push',
+        error: 'Branch has no commits',
+      };
+    }
+
+    // Collect all commits in the branch history
+    const commitsToPush: Commit[] = [];
+    const history = this.getCommitHistory(localCommit.hash);
+
+    // Find commits that don't exist in remote
+    history.forEach((commit) => {
+      if (!remoteRepo.getCommit(commit.hash)) {
+        commitsToPush.push(commit);
+      }
+    });
+
+    // Push commits to remote
+    commitsToPush.reverse().forEach((commit) => {
+      remoteRepo.addCommit(commit);
+    });
+
+    // Update or create branch on remote
+    const remoteBranch = remoteRepo.getBranch(branchName);
+    if (remoteBranch) {
+      remoteRepo.updateBranch(branchName, localBranch.commitHash);
+    } else {
+      remoteRepo.addBranch(Branch.create(branchName, localBranch.commitHash));
+    }
+
+    // Update local tracking of remote branches
+    this.repository.updateRemoteBranches(remoteName, remoteRepo.getBranchesArray());
+
+    const output =
+      commitsToPush.length > 0
+        ? `To ${remote.url}\n   ${localCommit.shortHash}..${localCommit.shortHash}  ${branchName} -> ${branchName}`
+        : `Everything up-to-date`;
+
+    return {
+      success: true,
+      message: 'Push completed',
+      output: output,
+    };
+  }
+
+  /**
+   * git fetch <remote> - Download commits and branches from remote without merging
+   */
+  fetch(remoteName: string): GitResult {
+    // Get the remote
+    const remote = this.repository.getRemote(remoteName);
+    if (!remote) {
+      return {
+        success: false,
+        message: `fatal: '${remoteName}' does not appear to be a git repository`,
+        error: `Remote '${remoteName}' not found`,
+      };
+    }
+
+    // Get the remote repository
+    const remoteRepo = Repository.getRemoteRepository(remote.url);
+    if (!remoteRepo) {
+      return {
+        success: false,
+        message: `fatal: repository '${remote.url}' not found`,
+        error: 'Remote repository does not exist',
+      };
+    }
+
+    // Fetch all commits from remote
+    const remoteCommits = remoteRepo.getCommitsArray();
+    let newCommitsCount = 0;
+
+    remoteCommits.forEach((commit) => {
+      if (!this.repository.getCommit(commit.hash)) {
+        this.repository.addCommit(commit);
+        newCommitsCount++;
+      }
+    });
+
+    // Update local tracking of remote branches
+    const remoteBranches = remoteRepo.getBranchesArray();
+    this.repository.updateRemoteBranches(remoteName, remoteBranches);
+
+    const output = `From ${remote.url}\n${remoteBranches
+      .map((b) => ` * [new branch]      ${b.name}     -> ${remoteName}/${b.name}`)
+      .join('\n')}`;
+
+    return {
+      success: true,
+      message: `Fetched from '${remoteName}'`,
+      output: output,
+    };
+  }
+
+  /**
+   * git pull <remote> <branch> - Download and merge remote changes
+   */
+  pull(remoteName: string, branchName: string): GitResult {
+    // First, fetch from remote
+    const fetchResult = this.fetch(remoteName);
+    if (!fetchResult.success) {
+      return fetchResult;
+    }
+
+    // Get the remote
+    const remote = this.repository.getRemote(remoteName);
+    if (!remote) {
+      return {
+        success: false,
+        message: `fatal: '${remoteName}' does not appear to be a git repository`,
+        error: `Remote '${remoteName}' not found`,
+      };
+    }
+
+    // Find the remote branch in the tracked branches
+    const remoteBranch = remote.branches.find((b) => b.name === branchName);
+    if (!remoteBranch) {
+      return {
+        success: false,
+        message: `fatal: Couldn't find remote ref ${branchName}`,
+        error: `Remote branch '${branchName}' not found`,
+      };
+    }
+
+    // Get current branch
+    const currentBranch = this.repository.getCurrentBranch();
+    if (!currentBranch) {
+      return {
+        success: false,
+        message: 'fatal: You are not currently on a branch.',
+        error: 'Cannot pull in detached HEAD state',
+      };
+    }
+
+    // Get current and remote commits
+    const currentCommit = this.repository.getCurrentCommit();
+    const remoteCommit = this.repository.getCommit(remoteBranch.commitHash);
+
+    if (!remoteCommit) {
+      return {
+        success: false,
+        message: 'fatal: Remote commit not found',
+        error: 'Remote branch commit not found after fetch',
+      };
+    }
+
+    if (!currentCommit) {
+      // No local commits, just update to remote
+      currentBranch.updateCommit(remoteCommit.hash);
+      this.repository.workingDirectory = { ...remoteCommit.tree };
+      return {
+        success: true,
+        message: 'Pull completed',
+        output: `From ${remote.url}\n * branch            ${branchName}     -> FETCH_HEAD\nUpdating to ${remoteCommit.shortHash}`,
+      };
+    }
+
+    // Check if already up to date
+    if (currentCommit.hash === remoteCommit.hash) {
+      return {
+        success: true,
+        message: 'Already up to date.',
+        output: 'Already up to date.',
+      };
+    }
+
+    // Check if fast-forward is possible
+    if (this.mergeEngine.canFastForward(this.repository, remoteCommit.hash)) {
+      this.mergeEngine.performFastForward(this.repository, remoteCommit.hash);
+      return {
+        success: true,
+        message: 'Pull completed (fast-forward)',
+        output: `From ${remote.url}\n * branch            ${branchName}     -> FETCH_HEAD\nUpdating ${currentCommit.shortHash}..${remoteCommit.shortHash}\nFast-forward`,
+      };
+    }
+
+    // Perform three-way merge
+    const mergeResult = this.mergeEngine.performThreeWayMerge(
+      this.repository,
+      currentCommit,
+      remoteCommit
+    );
+
+    if (!mergeResult.success) {
+      // Merge conflicts
+      if (mergeResult.mergedTree) {
+        this.repository.workingDirectory = mergeResult.mergedTree;
+        this.repository.stagingArea = { ...mergeResult.mergedTree };
+      }
+
+      const conflictFiles = mergeResult.conflicts.map((c) => c.filePath).join('\n\t');
+      return {
+        success: false,
+        message: 'Automatic merge failed; fix conflicts and then commit the result.',
+        output: `From ${remote.url}\n * branch            ${branchName}     -> FETCH_HEAD\nAuto-merging failed; fix conflicts and then commit the result.\nCONFLICT (content): Merge conflict in:\n\t${conflictFiles}`,
+        error: 'Merge conflicts must be resolved',
+      };
+    }
+
+    // Successful merge - create merge commit
+    if (mergeResult.mergedTree) {
+      this.repository.workingDirectory = mergeResult.mergedTree;
+      this.repository.stagingArea = mergeResult.mergedTree;
+
+      const mergeMessage = `Merge branch '${branchName}' of ${remote.url}`;
+      const mergeCommit = Commit.create(
+        mergeMessage,
+        'Chrono-Coder',
+        mergeResult.mergedTree,
+        currentCommit.hash,
+        [currentCommit.hash, remoteCommit.hash]
+      );
+
+      this.repository.addCommit(mergeCommit);
+      currentBranch.updateCommit(mergeCommit.hash);
+      this.repository.stagingArea = {};
+
+      return {
+        success: true,
+        message: 'Pull completed with merge',
+        output: `From ${remote.url}\n * branch            ${branchName}     -> FETCH_HEAD\nMerge made by the 'recursive' strategy.`,
+      };
+    }
+
+    return {
+      success: false,
+      message: 'Pull failed',
+      error: 'Unknown error during pull',
+    };
+  }
+
+  /**
+   * Fork a remote repository - Create a duplicate remote repository
+   */
+  fork(sourceUrl: string, forkUrl: string, forkName: string = 'fork'): GitResult {
+    // Get the source remote repository
+    const sourceRepo = Repository.getRemoteRepository(sourceUrl);
+
+    if (!sourceRepo) {
+      return {
+        success: false,
+        message: `fatal: repository '${sourceUrl}' not found`,
+        error: 'Source repository does not exist',
+      };
+    }
+
+    // Check if fork URL already exists
+    if (Repository.getRemoteRepository(forkUrl)) {
+      return {
+        success: false,
+        message: `fatal: repository '${forkUrl}' already exists`,
+        error: 'Fork URL already in use',
+      };
+    }
+
+    // Clone the source repository data
+    const { commits, branches } = sourceRepo.clone();
+
+    // Create new remote repository for the fork
+    const forkRepo = Repository.createRemoteRepository(forkName, forkUrl);
+
+    // Add all commits and branches to the fork
+    commits.forEach((commit) => {
+      forkRepo.addCommit(commit);
+    });
+
+    branches.forEach((branch) => {
+      forkRepo.addBranch(Branch.create(branch.name, branch.commitHash));
+    });
+
+    return {
+      success: true,
+      message: `Forked repository from '${sourceUrl}' to '${forkUrl}'`,
+      output: `Forking repository...\nCreated fork at ${forkUrl}`,
+    };
+  }
+
+  /**
+   * Create a pull request
+   */
+  createPullRequest(
+    title: string,
+    description: string,
+    sourceUrl: string,
+    sourceBranch: string,
+    targetUrl: string,
+    targetBranch: string,
+    author: string = 'Chrono-Coder'
+  ): GitResult {
+    // Validate source repository and branch
+    const sourceRepo = Repository.getRemoteRepository(sourceUrl);
+    if (!sourceRepo) {
+      return {
+        success: false,
+        message: `fatal: source repository '${sourceUrl}' not found`,
+        error: 'Source repository does not exist',
+      };
+    }
+
+    const sourceBranchObj = sourceRepo.getBranch(sourceBranch);
+    if (!sourceBranchObj) {
+      return {
+        success: false,
+        message: `fatal: source branch '${sourceBranch}' not found`,
+        error: 'Source branch does not exist',
+      };
+    }
+
+    // Validate target repository and branch
+    const targetRepo = Repository.getRemoteRepository(targetUrl);
+    if (!targetRepo) {
+      return {
+        success: false,
+        message: `fatal: target repository '${targetUrl}' not found`,
+        error: 'Target repository does not exist',
+      };
+    }
+
+    const targetBranchObj = targetRepo.getBranch(targetBranch);
+    if (!targetBranchObj) {
+      return {
+        success: false,
+        message: `fatal: target branch '${targetBranch}' not found`,
+        error: 'Target branch does not exist',
+      };
+    }
+
+    // Create the pull request
+    const pr = PullRequest.create(
+      title,
+      description,
+      sourceUrl,
+      sourceBranch,
+      targetUrl,
+      targetBranch,
+      author
+    );
+
+    // Store the pull request
+    Repository.storePullRequest(pr);
+
+    return {
+      success: true,
+      message: `Pull request created: ${pr.id}`,
+      output: `Pull Request #${pr.id}\n${title}\n\n${sourceBranch} -> ${targetBranch}\nStatus: open`,
+    };
+  }
+
+  /**
+   * Get a pull request by ID
+   */
+  getPullRequest(prId: string): PullRequest | null {
+    return Repository.getPullRequest(prId);
+  }
+
+  /**
+   * Merge a pull request
+   */
+  mergePullRequest(prId: string): GitResult {
+    // Get the pull request
+    const pr = Repository.getPullRequest(prId);
+    if (!pr) {
+      return {
+        success: false,
+        message: `fatal: pull request '${prId}' not found`,
+        error: 'Pull request does not exist',
+      };
+    }
+
+    // Check if already merged or closed
+    if (pr.status === 'merged') {
+      return {
+        success: false,
+        message: 'Pull request is already merged',
+        error: 'Pull request already merged',
+      };
+    }
+
+    if (pr.status === 'closed') {
+      return {
+        success: false,
+        message: 'Pull request is closed',
+        error: 'Cannot merge closed pull request',
+      };
+    }
+
+    // Get source and target repositories
+    const sourceRepo = Repository.getRemoteRepository(pr.sourceUrl);
+    const targetRepo = Repository.getRemoteRepository(pr.targetUrl);
+
+    if (!sourceRepo || !targetRepo) {
+      return {
+        success: false,
+        message: 'fatal: source or target repository not found',
+        error: 'Repository not found',
+      };
+    }
+
+    // Get source and target branches
+    const sourceBranch = sourceRepo.getBranch(pr.sourceBranch);
+    const targetBranch = targetRepo.getBranch(pr.targetBranch);
+
+    if (!sourceBranch || !targetBranch) {
+      return {
+        success: false,
+        message: 'fatal: source or target branch not found',
+        error: 'Branch not found',
+      };
+    }
+
+    // Get commits
+    const sourceCommit = sourceRepo.getCommit(sourceBranch.commitHash);
+    const targetCommit = targetRepo.getCommit(targetBranch.commitHash);
+
+    if (!sourceCommit || !targetCommit) {
+      return {
+        success: false,
+        message: 'fatal: commit not found',
+        error: 'Commit not found',
+      };
+    }
+
+    // Add source commits to target repository if they don't exist
+    const sourceHistory = this.getCommitHistoryFromRepo(sourceRepo, sourceCommit.hash);
+    sourceHistory.forEach((commit) => {
+      if (!targetRepo.getCommit(commit.hash)) {
+        targetRepo.addCommit(commit);
+      }
+    });
+
+    // Create merge commit in target repository
+    const mergeMessage = `Merge pull request #${pr.id} from ${pr.sourceBranch}\n\n${pr.title}`;
+    const mergeCommit = Commit.create(
+      mergeMessage,
+      pr.author,
+      sourceCommit.tree,
+      targetCommit.hash,
+      [targetCommit.hash, sourceCommit.hash]
+    );
+
+    targetRepo.addCommit(mergeCommit);
+    targetRepo.updateBranch(pr.targetBranch, mergeCommit.hash);
+
+    // Mark pull request as merged
+    pr.merge();
+
+    return {
+      success: true,
+      message: `Pull request #${pr.id} merged successfully`,
+      output: `Merged pull request #${pr.id}\n${pr.title}\n${pr.sourceBranch} -> ${pr.targetBranch}`,
+    };
+  }
+
+  /**
+   * Helper method to get commit history from a specific repository
+   */
+  private getCommitHistoryFromRepo(repo: any, startHash: string | null): Commit[] {
+    const history: Commit[] = [];
+    let currentHash = startHash;
+
+    while (currentHash) {
+      const commit = repo.getCommit(currentHash);
+      if (!commit) break;
+
+      history.push(commit);
+      currentHash = commit.parent;
+    }
+
+    return history;
   }
 }

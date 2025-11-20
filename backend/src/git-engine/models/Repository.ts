@@ -1,5 +1,7 @@
 import { Commit } from './Commit';
 import { Branch } from './Branch';
+import { RemoteRepository } from './RemoteRepository';
+import { PullRequest } from './PullRequest';
 import { FileTree, Remote } from 'shared/src/types';
 
 /**
@@ -7,6 +9,12 @@ import { FileTree, Remote } from 'shared/src/types';
  * This is the main class that maintains the repository state
  */
 export class Repository {
+  // Static storage for simulated remote repositories
+  private static remoteRepositories: Map<string, RemoteRepository> = new Map();
+
+  // Static storage for pull requests
+  private static pullRequests: Map<string, PullRequest> = new Map();
+
   public workingDirectory: FileTree;
   public stagingArea: FileTree;
   public commits: Map<string, Commit>;
@@ -30,10 +38,10 @@ export class Repository {
     this.remotes = remotes;
 
     // Populate commits map
-    commits.forEach(commit => this.commits.set(commit.hash, commit));
-    
+    commits.forEach((commit) => this.commits.set(commit.hash, commit));
+
     // Populate branches map
-    branches.forEach(branch => this.branches.set(branch.name, branch));
+    branches.forEach((branch) => this.branches.set(branch.name, branch));
   }
 
   /**
@@ -116,11 +124,11 @@ export class Repository {
    */
   static create(initialFiles: FileTree = {}): Repository {
     const repo = new Repository(initialFiles);
-    
+
     // Create initial main branch (points to null initially)
     const mainBranch = Branch.create('main', '');
     repo.addBranch(mainBranch);
-    
+
     return repo;
   }
 
@@ -131,10 +139,10 @@ export class Repository {
     return {
       workingDirectory: this.workingDirectory,
       stagingArea: this.stagingArea,
-      commits: this.getCommitsArray().map(c => c.toJSON()),
-      branches: this.getBranchesArray().map(b => b.toJSON()),
+      commits: this.getCommitsArray().map((c) => c.toJSON()),
+      branches: this.getBranchesArray().map((b) => b.toJSON()),
       head: this.head,
-      remotes: this.remotes
+      remotes: this.remotes,
     };
   }
 
@@ -142,11 +150,12 @@ export class Repository {
    * Create a Repository from JSON
    */
   static fromJSON(json: any): Repository {
-    const commits = json.commits.map((c: any) => 
-      new Commit(c.hash, c.message, c.author, new Date(c.timestamp), c.parent, c.tree, c.parents)
+    const commits = json.commits.map(
+      (c: any) =>
+        new Commit(c.hash, c.message, c.author, new Date(c.timestamp), c.parent, c.tree, c.parents)
     );
     const branches = json.branches.map((b: any) => Branch.fromJSON(b));
-    
+
     return new Repository(
       json.workingDirectory,
       json.stagingArea,
@@ -155,5 +164,96 @@ export class Repository {
       json.head,
       json.remotes || []
     );
+  }
+
+  /**
+   * Add a remote to this repository
+   */
+  addRemote(name: string, url: string): void {
+    // Check if remote already exists
+    if (this.remotes.find((r) => r.name === name)) {
+      throw new Error(`Remote '${name}' already exists`);
+    }
+
+    this.remotes.push({
+      name,
+      url,
+      branches: [],
+    });
+  }
+
+  /**
+   * Get a remote by name
+   */
+  getRemote(name: string): Remote | null {
+    return this.remotes.find((r) => r.name === name) || null;
+  }
+
+  /**
+   * Update remote branches
+   */
+  updateRemoteBranches(remoteName: string, branches: Branch[]): void {
+    const remote = this.getRemote(remoteName);
+    if (remote) {
+      remote.branches = branches.map((b) => ({ name: b.name, commitHash: b.commitHash }));
+    }
+  }
+
+  /**
+   * Static method to register a remote repository in the global storage
+   */
+  static registerRemoteRepository(remoteRepo: RemoteRepository): void {
+    Repository.remoteRepositories.set(remoteRepo.url, remoteRepo);
+  }
+
+  /**
+   * Static method to get a remote repository from global storage
+   */
+  static getRemoteRepository(url: string): RemoteRepository | null {
+    return Repository.remoteRepositories.get(url) || null;
+  }
+
+  /**
+   * Static method to create and register a new remote repository
+   */
+  static createRemoteRepository(name: string, url: string): RemoteRepository {
+    const remoteRepo = RemoteRepository.create(name, url);
+    Repository.registerRemoteRepository(remoteRepo);
+    return remoteRepo;
+  }
+
+  /**
+   * Static method to clear all remote repositories (useful for testing)
+   */
+  static clearRemoteRepositories(): void {
+    Repository.remoteRepositories.clear();
+  }
+
+  /**
+   * Static method to store a pull request
+   */
+  static storePullRequest(pr: PullRequest): void {
+    Repository.pullRequests.set(pr.id, pr);
+  }
+
+  /**
+   * Static method to get a pull request by ID
+   */
+  static getPullRequest(id: string): PullRequest | null {
+    return Repository.pullRequests.get(id) || null;
+  }
+
+  /**
+   * Static method to get all pull requests for a target repository
+   */
+  static getPullRequestsForTarget(targetUrl: string): PullRequest[] {
+    return Array.from(Repository.pullRequests.values()).filter((pr) => pr.targetUrl === targetUrl);
+  }
+
+  /**
+   * Static method to clear all pull requests (useful for testing)
+   */
+  static clearPullRequests(): void {
+    Repository.pullRequests.clear();
   }
 }

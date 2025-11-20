@@ -120,13 +120,13 @@ This implementation plan breaks down the GitQuest game into discrete, actionable
     - Test reset operations
     - _Requirements: 3.5, 3.6, 3.7, 3.8_
 
-- [ ] 6. Implement remote repository simulation
-  - [ ] 6.1 Create remote repository model
+- [x] 6. Implement remote repository simulation
+  - [x] 6.1 Create remote repository model
     - Define RemoteRepository class (name, url, commits, branches)
     - Implement remote repository storage in memory or database
     - Create mapping between local and remote branches
     - _Requirements: 9.1, 9.2_
-  - [ ] 6.2 Implement remote operations
+  - [x] 6.2 Implement remote operations
     - Implement `git remote add <name> <url>` - register remote repository
     - Implement `git remote -v` - list configured remotes
     - Implement `git clone <url>` - create local copy of remote repository
@@ -134,12 +134,12 @@ This implementation plan breaks down the GitQuest game into discrete, actionable
     - Implement `git pull <remote> <branch>` - download and merge remote changes
     - Implement `git fetch <remote>` - download without merging
     - _Requirements: 9.1, 9.2, 9.3, 9.4_
-  - [ ] 6.3 Implement pull request simulation
+  - [x] 6.3 Implement pull request simulation
     - Create fork operation that duplicates a remote repository
     - Implement pull request submission (store as database record)
     - Simulate pull request review and merge workflow
     - _Requirements: 9.5_
-  - [ ] 6.4 Write tests for remote operations
+  - [x] 6.4 Write tests for remote operations
     - Test remote registration
     - Test clone operation
     - Test push and pull operations

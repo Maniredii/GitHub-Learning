@@ -1,5 +1,5 @@
 import { GitEngine } from '../GitEngine';
-import { Repository } from '../models';
+import { Repository, Branch } from '../models';
 
 describe('GitEngine Core Functionality', () => {
   let gitEngine: GitEngine;
@@ -897,6 +897,556 @@ describe('GitEngine Core Functionality', () => {
 
       const repo = gitEngine.getRepository();
       expect(repo.workingDirectory['README.md'].content).toBe('# V2');
+    });
+  });
+});
+
+describe('Remote Repository Operations', () => {
+  let gitEngine: GitEngine;
+
+  beforeEach(() => {
+    // Clear remote repositories before each test
+    Repository.clearRemoteRepositories();
+    Repository.clearPullRequests();
+
+    const repo = Repository.create({
+      'README.md': { content: '# Test Project', modified: false },
+      'index.js': { content: 'console.log("Hello");', modified: false },
+    });
+    gitEngine = new GitEngine(repo);
+  });
+
+  afterEach(() => {
+    // Clean up after tests
+    Repository.clearRemoteRepositories();
+    Repository.clearPullRequests();
+  });
+
+  describe('Remote Registration', () => {
+    test('should add a remote repository', () => {
+      const result = gitEngine.remoteAdd('origin', 'https://github.com/test/repo.git');
+
+      expect(result.success).toBe(true);
+      expect(result.message).toContain('added');
+
+      const repo = gitEngine.getRepository();
+      const remote = repo.getRemote('origin');
+      expect(remote).toBeDefined();
+      expect(remote?.name).toBe('origin');
+      expect(remote?.url).toBe('https://github.com/test/repo.git');
+    });
+
+    test('should fail to add duplicate remote', () => {
+      gitEngine.remoteAdd('origin', 'https://github.com/test/repo.git');
+      const result = gitEngine.remoteAdd('origin', 'https://github.com/test/other.git');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('already exists');
+    });
+
+    test('should list configured remotes', () => {
+      gitEngine.remoteAdd('origin', 'https://github.com/test/repo.git');
+      gitEngine.remoteAdd('upstream', 'https://github.com/original/repo.git');
+
+      const result = gitEngine.remoteList();
+
+      expect(result.success).toBe(true);
+      expect(result.output).toContain('origin');
+      expect(result.output).toContain('upstream');
+      expect(result.output).toContain('https://github.com/test/repo.git');
+      expect(result.output).toContain('https://github.com/original/repo.git');
+    });
+
+    test('should show empty list when no remotes configured', () => {
+      const result = gitEngine.remoteList();
+
+      expect(result.success).toBe(true);
+      expect(result.output).toBe('');
+    });
+  });
+
+  describe('Clone Operation', () => {
+    test('should clone a remote repository', () => {
+      // Create a remote repository with commits
+      const remoteRepo = Repository.createRemoteRepository(
+        'test-repo',
+        'https://github.com/test/repo.git'
+      );
+      const remoteEngine = new GitEngine(
+        Repository.create({
+          'README.md': { content: '# Remote Project', modified: false },
+        })
+      );
+      remoteEngine.addAll();
+      remoteEngine.commit('Initial commit');
+
+      const remoteRepoObj = remoteEngine.getRepository();
+      remoteRepoObj.getCommitsArray().forEach((c) => remoteRepo.addCommit(c));
+      remoteRepoObj.getBranchesArray().forEach((b) => remoteRepo.addBranch(b));
+
+      // Clone the repository
+      const result = gitEngine.clone('https://github.com/test/repo.git');
+
+      expect(result.success).toBe(true);
+      expect(result.message).toContain('Cloned');
+
+      const repo = gitEngine.getRepository();
+      expect(repo.commits.size).toBe(1);
+      expect(repo.branches.size).toBe(1);
+      expect(repo.workingDirectory['README.md'].content).toBe('# Remote Project');
+      expect(repo.getRemote('origin')).toBeDefined();
+    });
+
+    test('should fail to clone non-existent repository', () => {
+      const result = gitEngine.clone('https://github.com/nonexistent/repo.git');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('does not exist');
+    });
+
+    test('should set HEAD to main branch after clone', () => {
+      const remoteRepo = Repository.createRemoteRepository(
+        'test-repo',
+        'https://github.com/test/repo.git'
+      );
+      const remoteEngine = new GitEngine(
+        Repository.create({ 'test.txt': { content: 'test', modified: false } })
+      );
+      remoteEngine.addAll();
+      remoteEngine.commit('Initial commit');
+
+      const remoteRepoObj = remoteEngine.getRepository();
+      remoteRepoObj.getCommitsArray().forEach((c) => remoteRepo.addCommit(c));
+      remoteRepoObj.getBranchesArray().forEach((b) => remoteRepo.addBranch(b));
+
+      gitEngine.clone('https://github.com/test/repo.git');
+
+      const repo = gitEngine.getRepository();
+      expect(repo.head).toBe('main');
+    });
+  });
+
+  describe('Push Operation', () => {
+    test('should push commits to remote repository', () => {
+      // Create remote repository
+      const remoteRepo = Repository.createRemoteRepository(
+        'test-repo',
+        'https://github.com/test/repo.git'
+      );
+
+      // Add remote and create commits locally
+      gitEngine.remoteAdd('origin', 'https://github.com/test/repo.git');
+      gitEngine.addAll();
+      gitEngine.commit('First commit');
+
+      const result = gitEngine.push('origin', 'main');
+
+      expect(result.success).toBe(true);
+      expect(result.message).toContain('completed');
+
+      // Verify commits were pushed
+      const localCommit = gitEngine.getRepository().getCurrentCommit();
+      const remoteCommit = remoteRepo.getCommit(localCommit!.hash);
+      expect(remoteCommit).toBeDefined();
+    });
+
+    test('should fail to push to non-existent remote', () => {
+      gitEngine.addAll();
+      gitEngine.commit('First commit');
+
+      const result = gitEngine.push('origin', 'main');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('not found');
+    });
+
+    test('should fail to push non-existent branch', () => {
+      Repository.createRemoteRepository('test-repo', 'https://github.com/test/repo.git');
+      gitEngine.remoteAdd('origin', 'https://github.com/test/repo.git');
+
+      const result = gitEngine.push('origin', 'nonexistent');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('not found');
+    });
+
+    test('should update remote branch on push', () => {
+      const remoteRepo = Repository.createRemoteRepository(
+        'test-repo',
+        'https://github.com/test/repo.git'
+      );
+
+      gitEngine.remoteAdd('origin', 'https://github.com/test/repo.git');
+      gitEngine.addAll();
+      gitEngine.commit('First commit');
+      gitEngine.push('origin', 'main');
+
+      gitEngine.modifyFile('README.md', '# Updated');
+      gitEngine.add('README.md');
+      gitEngine.commit('Second commit');
+      gitEngine.push('origin', 'main');
+
+      const localBranch = gitEngine.getRepository().getBranch('main');
+      const remoteBranch = remoteRepo.getBranch('main');
+      expect(remoteBranch?.commitHash).toBe(localBranch?.commitHash);
+    });
+  });
+
+  describe('Fetch Operation', () => {
+    test('should fetch commits from remote', () => {
+      // Create remote with commits
+      const remoteRepo = Repository.createRemoteRepository(
+        'test-repo',
+        'https://github.com/test/repo.git'
+      );
+      const remoteEngine = new GitEngine(
+        Repository.create({ 'test.txt': { content: 'test', modified: false } })
+      );
+      remoteEngine.addAll();
+      remoteEngine.commit('Remote commit');
+
+      const remoteRepoObj = remoteEngine.getRepository();
+      remoteRepoObj.getCommitsArray().forEach((c) => remoteRepo.addCommit(c));
+      remoteRepoObj.getBranchesArray().forEach((b) => remoteRepo.addBranch(b));
+
+      // Fetch from remote
+      gitEngine.remoteAdd('origin', 'https://github.com/test/repo.git');
+      const result = gitEngine.fetch('origin');
+
+      expect(result.success).toBe(true);
+      expect(result.message).toContain('Fetched');
+
+      const repo = gitEngine.getRepository();
+      expect(repo.commits.size).toBe(1);
+    });
+
+    test('should fail to fetch from non-existent remote', () => {
+      const result = gitEngine.fetch('origin');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('not found');
+    });
+
+    test('should update remote branch tracking', () => {
+      const remoteRepo = Repository.createRemoteRepository(
+        'test-repo',
+        'https://github.com/test/repo.git'
+      );
+      const remoteEngine = new GitEngine(
+        Repository.create({ 'test.txt': { content: 'test', modified: false } })
+      );
+      remoteEngine.addAll();
+      remoteEngine.commit('Remote commit');
+
+      const remoteRepoObj = remoteEngine.getRepository();
+      remoteRepoObj.getCommitsArray().forEach((c) => remoteRepo.addCommit(c));
+      remoteRepoObj.getBranchesArray().forEach((b) => remoteRepo.addBranch(b));
+
+      gitEngine.remoteAdd('origin', 'https://github.com/test/repo.git');
+      gitEngine.fetch('origin');
+
+      const repo = gitEngine.getRepository();
+      const remote = repo.getRemote('origin');
+      expect(remote?.branches.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Pull Operation', () => {
+    test('should pull and merge changes from remote', () => {
+      // Create remote with initial commit
+      const remoteRepo = Repository.createRemoteRepository(
+        'test-repo',
+        'https://github.com/test/repo.git'
+      );
+      const remoteEngine = new GitEngine(
+        Repository.create({ 'test.txt': { content: 'initial', modified: false } })
+      );
+      remoteEngine.addAll();
+      remoteEngine.commit('Initial commit');
+
+      const remoteRepoObj = remoteEngine.getRepository();
+      remoteRepoObj.getCommitsArray().forEach((c) => remoteRepo.addCommit(c));
+      remoteRepoObj.getBranchesArray().forEach((b) => remoteRepo.addBranch(b));
+
+      // Clone and make remote changes
+      gitEngine.clone('https://github.com/test/repo.git');
+
+      // Add new commit to remote
+      remoteEngine.modifyFile('test.txt', 'updated');
+      remoteEngine.add('test.txt');
+      remoteEngine.commit('Remote update');
+      remoteRepoObj.getCommitsArray().forEach((c) => {
+        if (!remoteRepo.getCommit(c.hash)) {
+          remoteRepo.addCommit(c);
+        }
+      });
+      const mainBranch = remoteRepoObj.getBranch('main');
+      if (mainBranch) {
+        remoteRepo.updateBranch('main', mainBranch.commitHash);
+      }
+
+      // Pull changes
+      const result = gitEngine.pull('origin', 'main');
+
+      expect(result.success).toBe(true);
+      expect(result.message).toContain('completed');
+
+      const repo = gitEngine.getRepository();
+      expect(repo.workingDirectory['test.txt'].content).toBe('updated');
+    });
+
+    test('should fail to pull from non-existent remote', () => {
+      const result = gitEngine.pull('origin', 'main');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('not found');
+    });
+
+    test('should handle already up-to-date pull', () => {
+      const remoteRepo = Repository.createRemoteRepository(
+        'test-repo',
+        'https://github.com/test/repo.git'
+      );
+      const remoteEngine = new GitEngine(
+        Repository.create({ 'test.txt': { content: 'test', modified: false } })
+      );
+      remoteEngine.addAll();
+      remoteEngine.commit('Initial commit');
+
+      const remoteRepoObj = remoteEngine.getRepository();
+      remoteRepoObj.getCommitsArray().forEach((c) => remoteRepo.addCommit(c));
+      remoteRepoObj.getBranchesArray().forEach((b) => remoteRepo.addBranch(b));
+
+      gitEngine.clone('https://github.com/test/repo.git');
+      const result = gitEngine.pull('origin', 'main');
+
+      expect(result.success).toBe(true);
+      expect(result.output).toContain('Already up to date');
+    });
+  });
+
+  describe('Fork Operation', () => {
+    test('should fork a remote repository', () => {
+      // Create source repository
+      const sourceRepo = Repository.createRemoteRepository(
+        'source',
+        'https://github.com/original/repo.git'
+      );
+      const sourceEngine = new GitEngine(
+        Repository.create({ 'test.txt': { content: 'test', modified: false } })
+      );
+      sourceEngine.addAll();
+      sourceEngine.commit('Initial commit');
+
+      const sourceRepoObj = sourceEngine.getRepository();
+      sourceRepoObj.getCommitsArray().forEach((c) => sourceRepo.addCommit(c));
+      sourceRepoObj.getBranchesArray().forEach((b) => sourceRepo.addBranch(b));
+
+      // Fork the repository
+      const result = gitEngine.fork(
+        'https://github.com/original/repo.git',
+        'https://github.com/user/repo.git',
+        'fork'
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.message).toContain('Forked');
+
+      const forkRepo = Repository.getRemoteRepository('https://github.com/user/repo.git');
+      expect(forkRepo).toBeDefined();
+      expect(forkRepo?.getCommitsArray().length).toBe(1);
+    });
+
+    test('should fail to fork non-existent repository', () => {
+      const result = gitEngine.fork(
+        'https://github.com/nonexistent/repo.git',
+        'https://github.com/user/repo.git'
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('does not exist');
+    });
+
+    test('should fail to fork to existing URL', () => {
+      const sourceRepo = Repository.createRemoteRepository(
+        'source',
+        'https://github.com/original/repo.git'
+      );
+      Repository.createRemoteRepository('existing', 'https://github.com/user/repo.git');
+
+      const result = gitEngine.fork(
+        'https://github.com/original/repo.git',
+        'https://github.com/user/repo.git'
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('already');
+    });
+  });
+
+  describe('Pull Request Operations', () => {
+    test('should create a pull request', () => {
+      // Create source and target repositories
+      const sourceRepo = Repository.createRemoteRepository(
+        'source',
+        'https://github.com/user/repo.git'
+      );
+      const targetRepo = Repository.createRemoteRepository(
+        'target',
+        'https://github.com/original/repo.git'
+      );
+
+      // Add commits and branches
+      const engine = new GitEngine(
+        Repository.create({ 'test.txt': { content: 'test', modified: false } })
+      );
+      engine.addAll();
+      engine.commit('Initial commit');
+
+      const repo = engine.getRepository();
+      repo.getCommitsArray().forEach((c) => {
+        sourceRepo.addCommit(c);
+        targetRepo.addCommit(c);
+      });
+      repo.getBranchesArray().forEach((b) => {
+        sourceRepo.addBranch(Branch.create(b.name, b.commitHash));
+        targetRepo.addBranch(Branch.create(b.name, b.commitHash));
+      });
+
+      // Create pull request
+      const result = gitEngine.createPullRequest(
+        'Add new feature',
+        'This PR adds a new feature',
+        'https://github.com/user/repo.git',
+        'main',
+        'https://github.com/original/repo.git',
+        'main'
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.message).toContain('created');
+      expect(result.output).toContain('Pull Request');
+    });
+
+    test('should fail to create PR with non-existent source repository', () => {
+      const targetRepo = Repository.createRemoteRepository(
+        'target',
+        'https://github.com/original/repo.git'
+      );
+
+      const result = gitEngine.createPullRequest(
+        'Test PR',
+        'Description',
+        'https://github.com/nonexistent/repo.git',
+        'main',
+        'https://github.com/original/repo.git',
+        'main'
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('does not exist');
+    });
+
+    test('should merge a pull request', () => {
+      // Setup repositories
+      const sourceRepo = Repository.createRemoteRepository(
+        'source',
+        'https://github.com/user/repo.git'
+      );
+      const targetRepo = Repository.createRemoteRepository(
+        'target',
+        'https://github.com/original/repo.git'
+      );
+
+      const engine = new GitEngine(
+        Repository.create({ 'test.txt': { content: 'test', modified: false } })
+      );
+      engine.addAll();
+      engine.commit('Initial commit');
+
+      const repo = engine.getRepository();
+      repo.getCommitsArray().forEach((c) => {
+        sourceRepo.addCommit(c);
+        targetRepo.addCommit(c);
+      });
+      repo.getBranchesArray().forEach((b) => {
+        sourceRepo.addBranch(Branch.create(b.name, b.commitHash));
+        targetRepo.addBranch(Branch.create(b.name, b.commitHash));
+      });
+
+      // Create and merge PR
+      const createResult = gitEngine.createPullRequest(
+        'Test PR',
+        'Description',
+        'https://github.com/user/repo.git',
+        'main',
+        'https://github.com/original/repo.git',
+        'main'
+      );
+
+      const prId = createResult.output?.match(/Pull Request #([^\n]+)/)?.[1];
+      expect(prId).toBeDefined();
+
+      const mergeResult = gitEngine.mergePullRequest(prId!);
+
+      expect(mergeResult.success).toBe(true);
+      expect(mergeResult.message).toContain('merged');
+
+      const pr = gitEngine.getPullRequest(prId!);
+      expect(pr?.status).toBe('merged');
+    });
+
+    test('should fail to merge non-existent pull request', () => {
+      const result = gitEngine.mergePullRequest('nonexistent-pr');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('does not exist');
+    });
+
+    test('should fail to merge already merged pull request', () => {
+      // Setup and create PR
+      const sourceRepo = Repository.createRemoteRepository(
+        'source',
+        'https://github.com/user/repo.git'
+      );
+      const targetRepo = Repository.createRemoteRepository(
+        'target',
+        'https://github.com/original/repo.git'
+      );
+
+      const engine = new GitEngine(
+        Repository.create({ 'test.txt': { content: 'test', modified: false } })
+      );
+      engine.addAll();
+      engine.commit('Initial commit');
+
+      const repo = engine.getRepository();
+      repo.getCommitsArray().forEach((c) => {
+        sourceRepo.addCommit(c);
+        targetRepo.addCommit(c);
+      });
+      repo.getBranchesArray().forEach((b) => {
+        sourceRepo.addBranch(Branch.create(b.name, b.commitHash));
+        targetRepo.addBranch(Branch.create(b.name, b.commitHash));
+      });
+
+      const createResult = gitEngine.createPullRequest(
+        'Test PR',
+        'Description',
+        'https://github.com/user/repo.git',
+        'main',
+        'https://github.com/original/repo.git',
+        'main'
+      );
+
+      const prId = createResult.output?.match(/Pull Request #([^\n]+)/)?.[1];
+      gitEngine.mergePullRequest(prId!);
+
+      // Try to merge again
+      const result = gitEngine.mergePullRequest(prId!);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('already merged');
     });
   });
 });
