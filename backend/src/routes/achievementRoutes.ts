@@ -1,0 +1,28 @@
+import express from 'express';
+import { authMiddleware } from '../middleware/authMiddleware';
+import {
+  checkAchievements,
+  getUserAchievements,
+  getAllAchievements,
+} from '../controllers/achievementController';
+
+const router = express.Router();
+
+/**
+ * Achievement Routes
+ *
+ * POST /api/achievements/check - Check and award achievements based on user action
+ * GET /api/achievements/user - Get all achievements earned by authenticated user
+ * GET /api/achievements - Get all available achievements
+ */
+
+// Check and award achievements (requires authentication)
+router.post('/check', authMiddleware, checkAchievements);
+
+// Get user's earned achievements (requires authentication)
+router.get('/user', authMiddleware, getUserAchievements);
+
+// Get all available achievements (public)
+router.get('/', getAllAchievements);
+
+export default router;

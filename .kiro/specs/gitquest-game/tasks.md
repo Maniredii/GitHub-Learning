@@ -187,12 +187,12 @@ This implementation plan breaks down the GitQuest game into discrete, actionable
   - Return updated XP, level, and any level-up notifications
   - _Requirements: 4.3, 4.4, 1.5_
 
-- [ ] 10. Build achievement system
-  - [ ] 10.1 Seed achievement definitions
+- [-] 10. Build achievement system
+  - [x] 10.1 Seed achievement definitions
     - Create achievement records in database ("First Blood", "Branch Master", etc.)
     - Define trigger conditions for each achievement
     - _Requirements: 6.1_
-  - [ ] 10.2 Implement achievement checking logic
+  - [x] 10.2 Implement achievement checking logic
     - Create achievement checker that evaluates conditions after each action
     - Check for "First Blood" on first commit
     - Check for "Branch Master" on first successful merge
@@ -200,12 +200,12 @@ This implementation plan breaks down the GitQuest game into discrete, actionable
     - Check for "Collaborator" on first pull request
     - Check for "Time Lord" on first rebase
     - _Requirements: 6.1, 6.2_
-  - [ ] 10.3 Create achievement API endpoints
+  - [x] 10.3 Create achievement API endpoints
     - Create POST /api/achievements/check - evaluate and award achievements
     - Create GET /api/achievements/user - get user's earned achievements
     - Return achievement data with badge icons and timestamps
     - _Requirements: 6.2, 6.3_
-  - [ ]\* 10.4 Write tests for achievement system
+  - [x] 10.4 Write tests for achievement system
     - Test achievement trigger conditions
     - Test achievement awarding
     - Test duplicate achievement prevention

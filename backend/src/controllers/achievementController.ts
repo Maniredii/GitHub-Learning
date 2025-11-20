@@ -1,0 +1,98 @@
+import { Request, Response } from 'express';
+import achievementService, { AchievementAction } from '../services/achievementService';
+
+/**
+ * Achievement Controller
+ * Handles HTTP requests for achievement-related operations
+ */
+
+/**
+ * Check and award achievements based on user action
+ * POST /api/achievements/check
+ */
+export const checkAchievements = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { action, context } = req.body;
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'User not authenticated' } });
+      return;
+    }
+
+    if (!action) {
+      res.status(400).json({
+        error: {
+          code: 'INVALID_INPUT',
+          message: 'Action type is required',
+        },
+      });
+      return;
+    }
+
+    const achievementAction: AchievementAction = {
+      type: action,
+      userId,
+      context,
+    };
+
+    const result = await achievementService.checkAchievements(achievementAction);
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error('Error checking achievements:', error);
+    res.status(500).json({
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to check achievements',
+      },
+    });
+  }
+};
+
+/**
+ * Get all achievements earned by the authenticated user
+ * GET /api/achievements/user
+ */
+export const getUserAchievements = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'User not authenticated' } });
+      return;
+    }
+
+    const achievements = await achievementService.getUserAchievements(userId);
+
+    res.status(200).json({ earned: achievements });
+  } catch (error) {
+    console.error('Error fetching user achievements:', error);
+    res.status(500).json({
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to fetch user achievements',
+      },
+    });
+  }
+};
+
+/**
+ * Get all available achievements
+ * GET /api/achievements
+ */
+export const getAllAchievements = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const achievements = await achievementService.getAllAchievements();
+
+    res.status(200).json({ achievements });
+  } catch (error) {
+    console.error('Error fetching achievements:', error);
+    res.status(500).json({
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to fetch achievements',
+      },
+    });
+  }
+};
