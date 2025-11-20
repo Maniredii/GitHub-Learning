@@ -258,104 +258,79 @@ This implementation plan breaks down the GitQuest game into discrete, actionable
     - _Requirements: 2.1, 2.2, 2.5_
 
 - [x] 13. Build frontend code editor component
-
-
-
-
   - [x] 13.1 Integrate Monaco Editor
-
-
     - Install and configure Monaco Editor library
     - Create EditorComponent wrapper
     - Configure syntax highlighting for common languages (JavaScript, Python, Markdown)
     - _Requirements: 8.1, 8.5_
 
   - [x] 13.2 Connect editor to Git engine
-
     - Load file content from simulated repository via API
     - Send file changes back to update working directory
     - Implement save functionality
     - _Requirements: 8.2, 8.3_
+
   - [x] 13.3 Implement conflict resolution UI
-
-
-
     - Detect and highlight conflict markers in editor
     - Provide UI buttons to accept current/incoming changes
     - Validate conflict resolution before allowing merge completion
     - _Requirements: 8.4_
+
   - [x] 13.4 Write tests for editor component
-
-
-
-
-
-
-
-
     - Test file loading and saving
     - Test conflict marker detection
     - Test conflict resolution actions
     - _Requirements: 8.1, 8.2, 8.3, 8.4_
 
 - [x] 14. Build Git graph visualization component
-
-
-
-
   - [x] 14.1 Integrate gitgraph-js library
-
-
     - Install and configure gitgraph-js
     - Create GitGraphComponent wrapper
     - Style graph to match game theme
     - _Requirements: 10.1_
+
   - [x] 14.2 Render repository state as graph
-
-
     - Fetch commit history and branch structure from API
     - Convert repository state to gitgraph-js format
     - Display commits as nodes with messages
     - Display branches as colored lines
     - Highlight current HEAD position
     - _Requirements: 10.1, 10.2, 10.3, 10.5_
+
   - [x] 14.3 Implement real-time graph updates
-
-
     - Update graph when new commits are created
     - Update graph when branches are created or switched
     - Animate merge operations in graph
     - _Requirements: 10.2, 10.3, 10.4_
 
   - [x] 14.4 Write tests for graph component
-
-
-
     - Test graph rendering with various repository states
     - Test graph updates on state changes
     - _Requirements: 10.1, 10.2, 10.3, 10.4_
 
-- [ ] 15. Build quest UI components
-  - [ ] 15.1 Create QuestView component
+- [x] 15. Build quest UI components
+  - [x] 15.1 Create QuestView component
     - Display quest title and narrative text
     - Display learning objective
     - Show quest completion status
     - Render terminal, editor, and graph components as needed
     - _Requirements: 4.2_
-  - [ ] 15.2 Create QuestList component
+
+  - [x] 15.2 Create QuestList component
     - Display list of quests for current chapter
     - Show locked/unlocked status with visual indicators
     - Display XP rewards for each quest
     - Handle quest selection and navigation
     - _Requirements: 4.5, 4.6_
-  - [ ] 15.3 Implement quest validation UI
+
+  - [x] 15.3 Implement quest validation UI
     - Add "Check Progress" button to validate quest completion
     - Display success message and XP award on completion
     - Display specific feedback on failure
     - Automatically advance to next quest on success
     - _Requirements: 4.3_
-  - [ ] 15.4 Write tests for quest UI components
 
+  - [x] 15.4 Write tests for quest UI components
     - Test quest rendering
     - Test quest navigation
     - Test validation feedback display
@@ -379,7 +354,6 @@ This implementation plan breaks down the GitQuest game into discrete, actionable
     - Unlock new regions as chapters are completed
     - _Requirements: 5.2, 4.6_
   - [ ] 16.4 Write tests for progress map
-
     - Test map rendering
     - Test region unlock logic
     - Test navigation on click

@@ -1,0 +1,287 @@
+import React, { useState, useEffect } from 'react';
+import type { Quest, RepositoryState } from '../../../shared/src/types';
+import { Terminal } from './Terminal';
+import { Editor } from './Editor';
+import { GitGraph } from './GitGraph';
+import { questApi, type QuestValidationResponse } from '../services/questApi';
+import { gitApi } from '../services/gitApi';
+import './QuestView.css';
+
+export interface QuestViewProps {
+  quest: Quest;
+  onComplete?: (questId: string, xpEarned: number) => void;
+  onNext?: () => void;
+}
+
+export const QuestView: React.FC<QuestViewProps> = ({ quest, onComplete, onNext }) => {
+  const [repositoryId, setRepositoryId] = useState<string>('');
+  const [repositoryState, setRepositoryState] = useState<RepositoryState | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
+  const [validationResult, setValidationResult] = useState<QuestValidationResponse | null>(null);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [fileContent, setFileContent] = useState<string>('');
+  const [showEditor, setShowEditor] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Initialize repository when quest loads
+  useEffect(() => {
+    initializeRepository();
+  }, [quest.id]);
+
+  // Update repository state when commands are executed
+  useEffect(() => {
+    if (repositoryId) {
+      refreshRepositoryState();
+    }
+  }, [repositoryId]);
+
+  const initializeRepository = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Create a new repository with initial state from quest
+      const result = await gitApi.createRepository(
+        quest.initialRepositoryState?.workingDirectory || {}
+      );
+
+      setRepositoryId(result.repositoryId);
+      setRepositoryState(result.state);
+
+      // If there are files, select the first one
+      const files = Object.keys(result.state.workingDirectory);
+      if (files.length > 0) {
+        setSelectedFile(files[0]);
+        setFileContent(result.state.workingDirectory[files[0]].content);
+        setShowEditor(true);
+      }
+    } catch (err) {
+      console.error('Failed to initialize repository:', err);
+      setError(err instanceof Error ? err.message : 'Failed to initialize quest');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const refreshRepositoryState = async () => {
+    try {
+      const result = await gitApi.getRepository(repositoryId);
+      setRepositoryState(result.state);
+    } catch (err) {
+      console.error('Failed to refresh repository state:', err);
+    }
+  };
+
+  const handleCommandExecute = async () => {
+    // Refresh repository state after command execution
+    await refreshRepositoryState();
+  };
+
+  const handleValidateQuest = async () => {
+    if (!repositoryState) {
+      setError('Repository not initialized');
+      return;
+    }
+
+    try {
+      setIsValidating(true);
+      setValidationResult(null);
+
+      const result = await questApi.validateQuest(quest.id, repositoryState);
+      setValidationResult(result);
+
+      if (result.success) {
+        setIsCompleted(true);
+        if (onComplete) {
+          onComplete(quest.id, result.xpAwarded);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to validate quest:', err);
+      setError(err instanceof Error ? err.message : 'Failed to validate quest');
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
+  const handleFileSave = async (content: string) => {
+    if (!selectedFile || !repositoryId) return;
+
+    try {
+      await gitApi.updateFileContent(repositoryId, selectedFile, content);
+      setFileContent(content);
+      await refreshRepositoryState();
+    } catch (err) {
+      console.error('Failed to save file:', err);
+      setError(err instanceof Error ? err.message : 'Failed to save file');
+    }
+  };
+
+  const handleFileSelect = (filePath: string) => {
+    if (!repositoryState) return;
+
+    const file = repositoryState.workingDirectory[filePath];
+    if (file) {
+      setSelectedFile(filePath);
+      setFileContent(file.content);
+      setShowEditor(true);
+    }
+  };
+
+  const handleNextQuest = () => {
+    if (onNext) {
+      onNext();
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="quest-view-loading">
+        <div className="quest-view-loading-spinner"></div>
+        <div className="quest-view-loading-text">Initializing quest...</div>
+      </div>
+    );
+  }
+
+  if (error && !repositoryId) {
+    return (
+      <div className="quest-view-error">
+        <div className="quest-view-error-icon">⚠️</div>
+        <div className="quest-view-error-text">{error}</div>
+        <button className="quest-view-error-retry" onClick={initializeRepository}>
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="quest-view">
+      {/* Quest Header */}
+      <div className="quest-view-header">
+        <div className="quest-view-title-section">
+          <h1 className="quest-view-title">{quest.title}</h1>
+          {isCompleted && <div className="quest-view-completed-badge">✓ Completed</div>}
+        </div>
+        <div className="quest-view-xp-badge">{quest.xpReward} XP</div>
+      </div>
+
+      {/* Quest Narrative */}
+      <div className="quest-view-narrative">
+        <div className="quest-view-narrative-icon">📜</div>
+        <div className="quest-view-narrative-content">
+          <p>{quest.narrative}</p>
+        </div>
+      </div>
+
+      {/* Quest Objective */}
+      <div className="quest-view-objective">
+        <div className="quest-view-objective-label">Learning Objective:</div>
+        <div className="quest-view-objective-text">{quest.objective}</div>
+      </div>
+
+      {/* Validation Result */}
+      {validationResult && (
+        <div
+          className={`quest-view-validation ${
+            validationResult.success
+              ? 'quest-view-validation-success'
+              : 'quest-view-validation-failure'
+          }`}
+        >
+          <div className="quest-view-validation-icon">{validationResult.success ? '✓' : '✗'}</div>
+          <div className="quest-view-validation-content">
+            <div className="quest-view-validation-feedback">{validationResult.feedback}</div>
+            {validationResult.success && (
+              <div className="quest-view-validation-xp">
+                +{validationResult.xpAwarded} XP earned!
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Error Display */}
+      {error && repositoryId && (
+        <div className="quest-view-error-banner">
+          <span className="quest-view-error-banner-icon">⚠️</span>
+          {error}
+        </div>
+      )}
+
+      {/* Interactive Components */}
+      <div className="quest-view-workspace">
+        {/* Terminal */}
+        <div className="quest-view-terminal-section">
+          <Terminal repositoryId={repositoryId} onCommandExecute={handleCommandExecute} />
+        </div>
+
+        {/* Editor (if files exist) */}
+        {showEditor && selectedFile && (
+          <div className="quest-view-editor-section">
+            <Editor
+              filePath={selectedFile}
+              content={fileContent}
+              onSave={handleFileSave}
+              conflictMode={fileContent.includes('<<<<<<< ')}
+            />
+          </div>
+        )}
+
+        {/* Git Graph */}
+        {repositoryState && repositoryState.commits.length > 0 && (
+          <div className="quest-view-graph-section">
+            <GitGraph
+              commits={repositoryState.commits}
+              branches={repositoryState.branches}
+              currentHead={repositoryState.head}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* File Browser (if multiple files) */}
+      {repositoryState && Object.keys(repositoryState.workingDirectory).length > 1 && (
+        <div className="quest-view-file-browser">
+          <div className="quest-view-file-browser-title">Files:</div>
+          <div className="quest-view-file-list">
+            {Object.keys(repositoryState.workingDirectory).map((filePath) => (
+              <button
+                key={filePath}
+                className={`quest-view-file-item ${
+                  selectedFile === filePath ? 'quest-view-file-item-active' : ''
+                }`}
+                onClick={() => handleFileSelect(filePath)}
+              >
+                <span className="quest-view-file-icon">📄</span>
+                {filePath}
+                {repositoryState.workingDirectory[filePath].modified && (
+                  <span className="quest-view-file-modified">●</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Action Buttons */}
+      <div className="quest-view-actions">
+        <button
+          className="quest-view-button quest-view-button-validate"
+          onClick={handleValidateQuest}
+          disabled={isValidating || isCompleted}
+        >
+          {isValidating ? 'Checking...' : isCompleted ? 'Quest Complete' : 'Check Progress'}
+        </button>
+
+        {isCompleted && onNext && (
+          <button className="quest-view-button quest-view-button-next" onClick={handleNextQuest}>
+            Next Quest →
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
