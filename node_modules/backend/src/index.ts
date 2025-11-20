@@ -9,6 +9,7 @@ import chapterRoutes from './routes/chapterRoutes';
 import progressRoutes from './routes/progressRoutes';
 import achievementRoutes from './routes/achievementRoutes';
 import bossBattleRoutes from './routes/bossBattleRoutes';
+import hintRoutes from './routes/hintRoutes';
 
 dotenv.config();
 
@@ -66,6 +67,9 @@ app.use('/api/achievements', achievementRoutes);
 
 // Boss battle routes
 app.use('/api/boss-battles', bossBattleRoutes);
+
+// Hint routes
+app.use('/api/hints', hintRoutes);
 
 // Start server
 app.listen(PORT, () => {

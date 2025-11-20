@@ -3,8 +3,10 @@ import type { Quest, RepositoryState } from '../../../shared/src/types';
 import { Terminal } from './Terminal';
 import { Editor } from './Editor';
 import { GitGraph } from './GitGraph';
+import { HintPanel } from './HintPanel';
 import { questApi, type QuestValidationResponse } from '../services/questApi';
 import { gitApi } from '../services/gitApi';
+import { hintApi } from '../services/hintApi';
 import './QuestView.css';
 
 export interface QuestViewProps {
@@ -24,6 +26,10 @@ export const QuestView: React.FC<QuestViewProps> = ({ quest, onComplete, onNext 
   const [showEditor, setShowEditor] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [adjustedXp, setAdjustedXp] = useState<number>(quest.xpReward);
+  const [xpPenalty, setXpPenalty] = useState<number>(0);
+  const [lastError, setLastError] = useState<string | null>(null);
+  const [lastCommand, setLastCommand] = useState<string | null>(null);
 
   // Initialize repository when quest loads
   useEffect(() => {
@@ -74,9 +80,18 @@ export const QuestView: React.FC<QuestViewProps> = ({ quest, onComplete, onNext 
     }
   };
 
-  const handleCommandExecute = async () => {
+  const handleCommandExecute = async (command: string, output: string) => {
+    // Clear error state on successful command
+    setLastError(null);
+    setLastCommand(null);
     // Refresh repository state after command execution
     await refreshRepositoryState();
+  };
+
+  const handleCommandError = (command: string, error: string) => {
+    // Store error and command for contextual hints
+    setLastError(error);
+    setLastCommand(command);
   };
 
   const handleValidateQuest = async () => {
@@ -90,12 +105,28 @@ export const QuestView: React.FC<QuestViewProps> = ({ quest, onComplete, onNext 
       setValidationResult(null);
 
       const result = await questApi.validateQuest(quest.id, repositoryState);
-      setValidationResult(result);
+      
+      // Apply XP penalty if hints were used
+      const finalXp = result.success ? adjustedXp : 0;
+      const resultWithAdjustedXp = {
+        ...result,
+        xpAwarded: finalXp,
+      };
+      
+      setValidationResult(resultWithAdjustedXp);
 
       if (result.success) {
         setIsCompleted(true);
         if (onComplete) {
-          onComplete(quest.id, result.xpAwarded);
+          onComplete(quest.id, finalXp);
+        }
+      } else {
+        // Record incorrect attempt
+        try {
+          const attemptResult = await hintApi.recordIncorrectAttempt(quest.id);
+          // The HintPanel will automatically show offer if needed
+        } catch (err) {
+          console.error('Failed to record incorrect attempt:', err);
         }
       }
     } catch (err) {
@@ -104,6 +135,11 @@ export const QuestView: React.FC<QuestViewProps> = ({ quest, onComplete, onNext 
     } finally {
       setIsValidating(false);
     }
+  };
+
+  const handleHintShown = (hintsShown: number, penalty: number) => {
+    setXpPenalty(penalty);
+    setAdjustedXp(quest.xpReward - penalty);
   };
 
   const handleFileSave = async (content: string) => {
@@ -165,7 +201,16 @@ export const QuestView: React.FC<QuestViewProps> = ({ quest, onComplete, onNext 
           <h1 className="quest-view-title">{quest.title}</h1>
           {isCompleted && <div className="quest-view-completed-badge">✓ Completed</div>}
         </div>
-        <div className="quest-view-xp-badge">{quest.xpReward} XP</div>
+        <div className="quest-view-xp-badge">
+          {xpPenalty > 0 ? (
+            <>
+              <span className="quest-view-xp-adjusted">{adjustedXp} XP</span>
+              <span className="quest-view-xp-original">({quest.xpReward} XP)</span>
+            </>
+          ) : (
+            <>{quest.xpReward} XP</>
+          )}
+        </div>
       </div>
 
       {/* Quest Narrative */}
@@ -181,6 +226,18 @@ export const QuestView: React.FC<QuestViewProps> = ({ quest, onComplete, onNext 
         <div className="quest-view-objective-label">Learning Objective:</div>
         <div className="quest-view-objective-text">{quest.objective}</div>
       </div>
+
+      {/* Hint Panel */}
+      {quest.hints && quest.hints.length > 0 && !isCompleted && (
+        <HintPanel
+          questId={quest.id}
+          questXpReward={quest.xpReward}
+          totalHints={quest.hints.length}
+          onHintShown={handleHintShown}
+          lastError={lastError || undefined}
+          lastCommand={lastCommand || undefined}
+        />
+      )}
 
       {/* Validation Result */}
       {validationResult && (
@@ -215,7 +272,11 @@ export const QuestView: React.FC<QuestViewProps> = ({ quest, onComplete, onNext 
       <div className="quest-view-workspace">
         {/* Terminal */}
         <div className="quest-view-terminal-section">
-          <Terminal repositoryId={repositoryId} onCommandExecute={handleCommandExecute} />
+          <Terminal
+            repositoryId={repositoryId}
+            onCommandExecute={handleCommandExecute}
+            onCommandError={handleCommandError}
+          />
         </div>
 
         {/* Editor (if files exist) */}

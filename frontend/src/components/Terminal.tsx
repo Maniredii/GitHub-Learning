@@ -8,6 +8,7 @@ import { gitApi } from '../services/gitApi';
 interface TerminalProps {
   repositoryId: string;
   onCommandExecute?: (command: string, output: string) => void;
+  onCommandError?: (command: string, error: string) => void;
   initialState?: any;
   onClear?: () => void;
 }
@@ -15,6 +16,7 @@ interface TerminalProps {
 export const Terminal: React.FC<TerminalProps> = ({
   repositoryId,
   onCommandExecute,
+  onCommandError,
   onClear,
 }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
@@ -193,6 +195,11 @@ export const Terminal: React.FC<TerminalProps> = ({
         if (response.error.includes('not a git command')) {
           term.writeln('\x1b[33m💡 Hint: Try "git status" or press Tab for suggestions\x1b[0m');
         }
+
+        // Call error callback if provided
+        if (onCommandError) {
+          onCommandError(command, response.error);
+        }
       } else {
         // Display success output
         if (response.output) {
@@ -201,11 +208,11 @@ export const Terminal: React.FC<TerminalProps> = ({
             term.writeln(line);
           });
         }
-      }
 
-      // Call callback if provided
-      if (onCommandExecute) {
-        onCommandExecute(command, response.output || response.error || '');
+        // Call success callback if provided
+        if (onCommandExecute) {
+          onCommandExecute(command, response.output || '');
+        }
       }
     } catch (error) {
       term.writeln('\x1b[1;31m✗ Connection to the Chrono-Realm failed!\x1b[0m');

@@ -359,22 +359,22 @@ This implementation plan breaks down the GitQuest game into discrete, actionable
     - Test navigation on click
     - _Requirements: 5.1, 5.2, 5.4_
 
-- [ ] 17. Build hint system
-  - [ ] 17.1 Implement hint tracking
+- [-] 17. Build hint system
+  - [x] 17.1 Implement hint tracking
     - Track incorrect command attempts per quest
     - Store hint progression state (which hints have been shown)
     - _Requirements: 11.1_
-  - [ ] 17.2 Create hint UI components
+  - [x] 17.2 Create hint UI components
     - Add "Show Hint" button to quest interface
     - Display progressive hints (start vague, get more specific)
     - Show hint usage count and XP penalty warning
     - _Requirements: 11.2, 11.3_
-  - [ ] 17.3 Implement automatic hint triggers
+  - [x] 17.3 Implement automatic hint triggers
     - Trigger hint offer after 3 incorrect attempts
     - Display contextual hints based on error type
     - Provide command documentation links
     - _Requirements: 11.1, 11.4, 11.5_
-  - [ ]\* 17.4 Write tests for hint system
+  - [x] 17.4 Write tests for hint system
     - Test hint triggering logic
     - Test XP penalty calculation
     - Test progressive hint display
@@ -407,7 +407,7 @@ This implementation plan breaks down the GitQuest game into discrete, actionable
     - Implement protected routes requiring authentication
     - Handle token expiration and auto-logout
     - _Requirements: 1.3_
-  - [ ]\* 19.4 Write tests for authentication UI
+  - [ ] 19.4 Write tests for authentication UI
     - Test registration form validation
     - Test login flow
     - Test protected route access
@@ -432,7 +432,7 @@ This implementation plan breaks down the GitQuest game into discrete, actionable
     - Show payment forms within modal
     - Unlock content immediately after successful payment
     - _Requirements: 12.2, 12.3_
-  - [ ]\* 20.4 Write tests for paywall system
+  - [ ] 20.4 Write tests for paywall system
     - Test content access control
     - Test payment flow (using test mode)
     - Test premium status updates
@@ -456,7 +456,7 @@ This implementation plan breaks down the GitQuest game into discrete, actionable
     - Ensure color contrast meets WCAG 2.1 AA standards
     - Test with screen reader (NVDA or JAWS)
     - _Requirements: 13.3, 13.4, 13.5_
-  - [ ]\* 21.4 Write accessibility tests
+  - [ ] 21.4 Write accessibility tests
     - Test keyboard navigation
     - Test ARIA label presence
     - Test color contrast ratios
@@ -482,7 +482,7 @@ This implementation plan breaks down the GitQuest game into discrete, actionable
     - Display retention cohort analysis
     - Implement date range filtering
     - _Requirements: 15.5_
-  - [ ]\* 22.4 Write tests for analytics
+  - [ ] 22.4 Write tests for analytics
     - Test event logging
     - Test aggregation queries
     - Test dashboard data accuracy
