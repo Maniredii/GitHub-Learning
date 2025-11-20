@@ -1,0 +1,61 @@
+.connected-progress-map {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+}
+
+.connected-progress-map--loading,
+.connected-progress-map--error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  border-radius: 8px;
+  color: #fff;
+}
+
+.connected-progress-map__spinner {
+  font-size: 18px;
+  font-weight: 500;
+  animation: fadeIn 0.5s ease-in;
+}
+
+.connected-progress-map__error {
+  text-align: center;
+  padding: 20px;
+}
+
+.connected-progress-map__error p {
+  margin-bottom: 16px;
+  color: #fc8181;
+  font-size: 16px;
+}
+
+.connected-progress-map__retry {
+  padding: 10px 20px;
+  background: #805ad5;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.connected-progress-map__retry:hover {
+  background: #6b46c1;
+}
+
+.connected-progress-map__retry:active {
+  transform: scale(0.98);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

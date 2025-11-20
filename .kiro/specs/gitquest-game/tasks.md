@@ -336,24 +336,24 @@ This implementation plan breaks down the GitQuest game into discrete, actionable
     - Test validation feedback display
     - _Requirements: 4.2, 4.3, 4.5_
 
-- [ ] 16. Build progress map component
-  - [ ] 16.1 Create visual map design
+- [x] 16. Build progress map component
+  - [x] 16.1 Create visual map design
     - Design SVG-based map with distinct regions for each chapter
     - Create visual themes for each region (Caves, Forests, Mountains, etc.)
     - Implement locked/unlocked visual states
     - _Requirements: 5.1, 5.5_
-  - [ ] 16.2 Implement map interactivity
+  - [x] 16.2 Implement map interactivity
     - Make unlocked regions clickable
     - Navigate to chapter quest list on region click
     - Highlight current chapter location
     - Display tooltips with chapter names on hover
     - _Requirements: 5.2, 5.3, 5.4_
-  - [ ] 16.3 Connect map to user progress
+  - [x] 16.3 Connect map to user progress
     - Fetch user progress from API
     - Update map visual state based on completed chapters
     - Unlock new regions as chapters are completed
     - _Requirements: 5.2, 4.6_
-  - [ ] 16.4 Write tests for progress map
+  - [x] 16.4 Write tests for progress map
     - Test map rendering
     - Test region unlock logic
     - Test navigation on click
