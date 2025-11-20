@@ -6,6 +6,7 @@ import authRoutes from './routes/authRoutes';
 import gitRoutes from './routes/gitRoutes';
 import questRoutes from './routes/questRoutes';
 import chapterRoutes from './routes/chapterRoutes';
+import progressRoutes from './routes/progressRoutes';
 
 dotenv.config();
 
@@ -54,6 +55,9 @@ app.use('/api/git', gitRoutes);
 // Quest and chapter routes
 app.use('/api/quests', questRoutes);
 app.use('/api/chapters', chapterRoutes);
+
+// Progress routes
+app.use('/api/progress', progressRoutes);
 
 // Start server
 app.listen(PORT, () => {

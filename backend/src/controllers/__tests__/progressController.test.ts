@@ -1,0 +1,228 @@
+import request from 'supertest';
+import express, { Express } from 'express';
+import progressRoutes from '../../routes/progressRoutes';
+import authRoutes from '../../routes/authRoutes';
+import db from '../../database/db';
+import { v4 as uuidv4 } from 'uuid';
+
+// Create Express app for testing
+const app: Express = express();
+app.use(express.json());
+app.use('/api/auth', authRoutes);
+app.use('/api/progress', progressRoutes);
+
+// Setup and teardown database
+beforeAll(async () => {
+  try {
+    await db.raw('SELECT 1');
+    await db.migrate.latest();
+    console.log('Progress test database setup complete');
+  } catch (error) {
+    console.error('Database setup failed:', error);
+    throw error;
+  }
+});
+
+afterAll(async () => {
+  try {
+    await db.destroy();
+  } catch (error) {
+    console.error('Database cleanup failed:', error);
+  }
+});
+
+beforeEach(async () => {
+  // Clean up test data before each test
+  try {
+    await db('quest_completions').del();
+    await db('user_progress').del();
+    await db('users').del();
+    await db('quests').del();
+    await db('chapters').del();
+  } catch (error) {
+    console.error('Test data cleanup failed:', error);
+    throw error;
+  }
+});
+
+describe('Progress Controller Tests', () => {
+  let authToken: string;
+  let userId: string;
+
+  beforeEach(async () => {
+    // Register a test user and get auth token
+    const registerResponse = await request(app).post('/api/auth/register').send({
+      email: 'test@example.com',
+      username: 'testuser',
+      password: 'Test1234',
+    });
+
+    authToken = registerResponse.body.token;
+    userId = registerResponse.body.user.id;
+  });
+
+  describe('GET /api/progress - Get User Progress', () => {
+    test('should return user progress for authenticated user', async () => {
+      const response = await request(app)
+        .get('/api/progress')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toHaveProperty('xp');
+      expect(response.body.data).toHaveProperty('level');
+      expect(response.body.data).toHaveProperty('rank');
+      expect(response.body.data).toHaveProperty('completedQuests');
+      expect(response.body.data.xp).toBe(0);
+      expect(response.body.data.level).toBe(1);
+      expect(response.body.data.rank).toBe('Apprentice Coder');
+      expect(response.body.data.completedQuests).toEqual([]);
+    });
+
+    test('should return 401 for unauthenticated request', async () => {
+      const response = await request(app).get('/api/progress');
+
+      expect(response.status).toBe(401);
+      expect(response.body.error).toBeDefined();
+      expect(response.body.error.code).toBe('MISSING_TOKEN');
+    });
+  });
+
+  describe('POST /api/progress/complete-quest - Complete Quest', () => {
+    let chapterId: string;
+    let questId: string;
+
+    beforeEach(async () => {
+      // Create a test chapter and quest
+      chapterId = uuidv4();
+      questId = uuidv4();
+
+      await db('chapters').insert({
+        id: chapterId,
+        title: 'Test Chapter',
+        description: 'Test chapter description',
+        theme_region: 'Test Region',
+        order: 1,
+        is_premium: false,
+        unlock_requirements: {},
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+
+      await db('quests').insert({
+        id: questId,
+        chapter_id: chapterId,
+        title: 'Test Quest',
+        narrative: 'Test narrative',
+        objective: 'Test objective',
+        hints: JSON.stringify(['Hint 1', 'Hint 2']),
+        xp_reward: 50,
+        order: 1,
+        validation_criteria: JSON.stringify({ type: 'custom', parameters: {} }),
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+    });
+
+    test('should successfully complete a quest and award XP', async () => {
+      const response = await request(app)
+        .post('/api/progress/complete-quest')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ questId });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.newXp).toBe(50);
+      expect(response.body.data.newLevel).toBe(1);
+      expect(response.body.data.leveledUp).toBe(false);
+      expect(response.body.data.xpEarned).toBe(50);
+    });
+
+    test('should level up when XP threshold is reached', async () => {
+      // Create multiple quests to reach level 2 (100 XP)
+      const quest2Id = uuidv4();
+      await db('quests').insert({
+        id: quest2Id,
+        chapter_id: chapterId,
+        title: 'Test Quest 2',
+        narrative: 'Test narrative',
+        objective: 'Test objective',
+        hints: JSON.stringify([]),
+        xp_reward: 50,
+        order: 2,
+        validation_criteria: JSON.stringify({ type: 'custom', parameters: {} }),
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+
+      // Complete first quest (50 XP)
+      await request(app)
+        .post('/api/progress/complete-quest')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ questId });
+
+      // Complete second quest (50 XP, total 100 XP = level 2)
+      const response = await request(app)
+        .post('/api/progress/complete-quest')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ questId: quest2Id });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.newXp).toBe(100);
+      expect(response.body.data.newLevel).toBe(2);
+      expect(response.body.data.leveledUp).toBe(true);
+      expect(response.body.data.newRank).toBe('Apprentice Coder');
+      expect(response.body.message).toContain('leveled up');
+    });
+
+    test('should return error when quest already completed', async () => {
+      // Complete quest first time
+      await request(app)
+        .post('/api/progress/complete-quest')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ questId });
+
+      // Try to complete again
+      const response = await request(app)
+        .post('/api/progress/complete-quest')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ questId });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('QUEST_ALREADY_COMPLETED');
+    });
+
+    test('should return error when quest ID is missing', async () => {
+      const response = await request(app)
+        .post('/api/progress/complete-quest')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({});
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('MISSING_QUEST_ID');
+    });
+
+    test('should return error when quest does not exist', async () => {
+      const nonExistentQuestId = uuidv4();
+      const response = await request(app)
+        .post('/api/progress/complete-quest')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ questId: nonExistentQuestId });
+
+      expect(response.status).toBe(404);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('QUEST_NOT_FOUND');
+    });
+
+    test('should return 401 for unauthenticated request', async () => {
+      const response = await request(app).post('/api/progress/complete-quest').send({ questId });
+
+      expect(response.status).toBe(401);
+      expect(response.body.error).toBeDefined();
+      expect(response.body.error.code).toBe('MISSING_TOKEN');
+    });
+  });
+});
