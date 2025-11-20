@@ -2,9 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HintPanel } from '../HintPanel';
-import * as hintApi from '../../services/hintApi';
-
-vi.mock('../../services/hintApi');
+import { hintApi } from '../../services/hintApi';
 
 describe('HintPanel', () => {
   const mockQuestId = 'quest-123';

@@ -359,7 +359,7 @@ This implementation plan breaks down the GitQuest game into discrete, actionable
     - Test navigation on click
     - _Requirements: 5.1, 5.2, 5.4_
 
-- [-] 17. Build hint system
+- [x] 17. Build hint system
   - [x] 17.1 Implement hint tracking
     - Track incorrect command attempts per quest
     - Store hint progression state (which hints have been shown)

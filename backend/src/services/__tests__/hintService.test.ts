@@ -5,13 +5,38 @@ import { v4 as uuidv4 } from 'uuid';
 describe('HintService', () => {
   const testUserId = uuidv4();
   const testQuestId = uuidv4();
+  const testChapterId = uuidv4();
   const testUsername = `testuser_${testUserId.substring(0, 8)}`;
   const testEmail = `test_${testUserId.substring(0, 8)}@example.com`;
 
+  // Helper function to create a test quest
+  const createTestQuest = async (questId: string) => {
+    await db('quests').insert({
+      id: questId,
+      chapter_id: testChapterId,
+      title: `Test Quest ${questId.substring(0, 8)}`,
+      narrative: 'Test quest narrative',
+      objective: 'Test quest objective',
+      hints: JSON.stringify(['Hint 1', 'Hint 2', 'Hint 3']),
+      xp_reward: 100,
+      order: Math.floor(Math.random() * 10000) + 1000,
+      validation_criteria: JSON.stringify({}),
+    });
+
+    // Verify the quest was created
+    const quest = await db('quests').where({ id: questId }).first();
+    if (!quest) {
+      throw new Error(`Quest ${questId} was not created`);
+    }
+  };
+
   beforeAll(async () => {
-    // Clean up any existing test user first
+    // Clean up any existing test data first
+    await db('quest_hint_tracking').where({ user_id: testUserId }).del();
+    await db('quests').where({ id: testQuestId }).del();
+    await db('chapters').where({ id: testChapterId }).del();
     await db('users').where({ id: testUserId }).del();
-    
+
     // Create a test user
     await db('users').insert({
       id: testUserId,
@@ -19,14 +44,43 @@ describe('HintService', () => {
       username: testUsername,
       password_hash: 'hashedpassword',
     });
-    
-    // Clean up any existing test data
-    await db('quest_hint_tracking').where({ user_id: testUserId }).del();
+
+    // Create a test chapter
+    await db('chapters').insert({
+      id: testChapterId,
+      title: 'Test Chapter',
+      description: 'Test chapter for hint service tests',
+      theme_region: 'test-region',
+      order: 999,
+      is_premium: false,
+      unlock_requirements: JSON.stringify({}),
+    });
+
+    // Verify chapter was created
+    const chapter = await db('chapters').where({ id: testChapterId }).first();
+    if (!chapter) {
+      throw new Error('Test chapter was not created');
+    }
+
+    // Create a test quest
+    await db('quests').insert({
+      id: testQuestId,
+      chapter_id: testChapterId,
+      title: 'Test Quest',
+      narrative: 'Test quest narrative',
+      objective: 'Test quest objective',
+      hints: JSON.stringify(['Hint 1', 'Hint 2', 'Hint 3']),
+      xp_reward: 100,
+      order: 1,
+      validation_criteria: JSON.stringify({}),
+    });
   });
 
   afterAll(async () => {
     // Clean up test data
     await db('quest_hint_tracking').where({ user_id: testUserId }).del();
+    await db('quests').where({ id: testQuestId }).del();
+    await db('chapters').where({ id: testChapterId }).del();
     await db('users').where({ id: testUserId }).del();
     await db.destroy();
   });
@@ -53,19 +107,22 @@ describe('HintService', () => {
   describe('incrementIncorrectAttempts', () => {
     it('should create tracking with 1 attempt if none exists', async () => {
       const newQuestId = uuidv4();
+      await createTestQuest(newQuestId);
+
       const tracking = await hintService.incrementIncorrectAttempts(testUserId, newQuestId);
 
       expect(tracking.incorrect_attempts).toBe(1);
       expect(tracking.hints_shown).toBe(0);
 
       // Clean up
-      await db('quest_hint_tracking')
-        .where({ user_id: testUserId, quest_id: newQuestId })
-        .del();
+      await db('quest_hint_tracking').where({ user_id: testUserId, quest_id: newQuestId }).del();
+      await db('quests').where({ id: newQuestId }).del();
     });
 
     it('should increment existing attempt count', async () => {
       const questId = uuidv4();
+      await createTestQuest(questId);
+
       await hintService.upsertHintTracking(testUserId, questId, {
         incorrect_attempts: 2,
       });
@@ -75,12 +132,15 @@ describe('HintService', () => {
 
       // Clean up
       await db('quest_hint_tracking').where({ user_id: testUserId, quest_id: questId }).del();
+      await db('quests').where({ id: questId }).del();
     });
   });
 
   describe('recordHintShown', () => {
     it('should record first hint shown', async () => {
       const questId = uuidv4();
+      await createTestQuest(questId);
+
       const tracking = await hintService.recordHintShown(testUserId, questId, 0);
 
       expect(tracking.hints_shown).toBe(1);
@@ -88,10 +148,13 @@ describe('HintService', () => {
 
       // Clean up
       await db('quest_hint_tracking').where({ user_id: testUserId, quest_id: questId }).del();
+      await db('quests').where({ id: questId }).del();
     });
 
     it('should not duplicate hint indices', async () => {
       const questId = uuidv4();
+      await createTestQuest(questId);
+
       await hintService.recordHintShown(testUserId, questId, 0);
       const tracking = await hintService.recordHintShown(testUserId, questId, 0);
 
@@ -100,10 +163,13 @@ describe('HintService', () => {
 
       // Clean up
       await db('quest_hint_tracking').where({ user_id: testUserId, quest_id: questId }).del();
+      await db('quests').where({ id: questId }).del();
     });
 
     it('should track multiple different hints', async () => {
       const questId = uuidv4();
+      await createTestQuest(questId);
+
       await hintService.recordHintShown(testUserId, questId, 0);
       await hintService.recordHintShown(testUserId, questId, 1);
       const tracking = await hintService.recordHintShown(testUserId, questId, 2);
@@ -113,6 +179,7 @@ describe('HintService', () => {
 
       // Clean up
       await db('quest_hint_tracking').where({ user_id: testUserId, quest_id: questId }).del();
+      await db('quests').where({ id: questId }).del();
     });
   });
 
@@ -142,6 +209,7 @@ describe('HintService', () => {
   describe('getNextHint', () => {
     it('should return first hint when none shown', async () => {
       const questId = uuidv4();
+      await createTestQuest(questId);
       const hints = ['Hint 1', 'Hint 2', 'Hint 3'];
 
       const result = await hintService.getNextHint(testUserId, questId, hints);
@@ -153,10 +221,12 @@ describe('HintService', () => {
 
       // Clean up
       await db('quest_hint_tracking').where({ user_id: testUserId, quest_id: questId }).del();
+      await db('quests').where({ id: questId }).del();
     });
 
     it('should return next unshown hint', async () => {
       const questId = uuidv4();
+      await createTestQuest(questId);
       const hints = ['Hint 1', 'Hint 2', 'Hint 3'];
 
       await hintService.recordHintShown(testUserId, questId, 0);
@@ -167,10 +237,12 @@ describe('HintService', () => {
 
       // Clean up
       await db('quest_hint_tracking').where({ user_id: testUserId, quest_id: questId }).del();
+      await db('quests').where({ id: questId }).del();
     });
 
     it('should return null when all hints shown', async () => {
       const questId = uuidv4();
+      await createTestQuest(questId);
       const hints = ['Hint 1', 'Hint 2'];
 
       await hintService.recordHintShown(testUserId, questId, 0);
@@ -181,6 +253,7 @@ describe('HintService', () => {
 
       // Clean up
       await db('quest_hint_tracking').where({ user_id: testUserId, quest_id: questId }).del();
+      await db('quests').where({ id: questId }).del();
     });
   });
 
