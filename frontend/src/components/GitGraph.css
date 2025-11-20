@@ -1,0 +1,258 @@
+.git-graph-container {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: auto;
+  max-height: 600px;
+}
+
+.git-graph-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.git-graph-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #00ff41;
+  text-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.git-graph-title::before {
+  content: '⎇';
+  font-size: 24px;
+}
+
+.git-graph-info {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: #aaa;
+}
+
+.git-graph-info-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.git-graph-info-label {
+  color: #666;
+}
+
+.git-graph-info-value {
+  color: #00ff41;
+  font-weight: 600;
+}
+
+.git-graph-content {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 16px;
+  min-height: 200px;
+}
+
+.git-graph-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: #666;
+  font-size: 14px;
+}
+
+.git-graph-empty-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.git-graph-empty-text {
+  margin-bottom: 4px;
+}
+
+.git-graph-empty-hint {
+  font-size: 12px;
+  color: #555;
+}
+
+/* Override gitgraph styles to match theme */
+.git-graph-content svg {
+  font-family: 'Fira Code', 'Courier New', monospace;
+}
+
+.git-graph-content .commit-message {
+  fill: #eee;
+}
+
+.git-graph-content .commit-hash {
+  fill: #ffd93d;
+}
+
+.git-graph-content .branch-label {
+  fill: #00ff41;
+  font-weight: 600;
+}
+
+.git-graph-content .tag-label {
+  fill: #ff6bff;
+}
+
+/* Loading state */
+.git-graph-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: #00ff41;
+  font-size: 14px;
+}
+
+.git-graph-loading::before {
+  content: '⟳';
+  font-size: 24px;
+  margin-right: 8px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error state */
+.git-graph-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: #ff6b6b;
+  font-size: 14px;
+}
+
+.git-graph-error-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.git-graph-error-text {
+  margin-bottom: 8px;
+}
+
+.git-graph-error-retry {
+  margin-top: 12px;
+  padding: 8px 16px;
+  background: rgba(255, 107, 107, 0.2);
+  border: 1px solid #ff6b6b;
+  border-radius: 6px;
+  color: #ff6b6b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.git-graph-error-retry:hover {
+  background: rgba(255, 107, 107, 0.3);
+  transform: translateY(-1px);
+}
+
+/* Animation for graph updates */
+.graph-updating {
+  animation: graphPulse 0.5s ease-in-out;
+}
+
+@keyframes graphPulse {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Animate new commits */
+.git-graph-content svg .commit-dot {
+  animation: commitAppear 0.3s ease-out;
+}
+
+@keyframes commitAppear {
+  0% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Animate branch creation */
+.git-graph-content svg .branch-line {
+  animation: branchGrow 0.4s ease-out;
+}
+
+@keyframes branchGrow {
+  0% {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+  }
+  100% {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Highlight effect for HEAD changes */
+.git-graph-content svg .head-indicator {
+  animation: headHighlight 0.6s ease-in-out;
+}
+
+@keyframes headHighlight {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+    filter: brightness(1.5);
+  }
+}
+
+/* Merge animation */
+.git-graph-content svg .merge-commit {
+  animation: mergeFlash 0.5s ease-in-out;
+}
+
+@keyframes mergeFlash {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  25%, 75% {
+    filter: brightness(1.5) drop-shadow(0 0 8px #ffd93d);
+  }
+  50% {
+    filter: brightness(2) drop-shadow(0 0 12px #ffd93d);
+  }
+}

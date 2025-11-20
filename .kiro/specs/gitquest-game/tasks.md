@@ -298,26 +298,39 @@ This implementation plan breaks down the GitQuest game into discrete, actionable
     - Test conflict resolution actions
     - _Requirements: 8.1, 8.2, 8.3, 8.4_
 
-- [ ] 14. Build Git graph visualization component
-  - [ ] 14.1 Integrate gitgraph-js library
+- [x] 14. Build Git graph visualization component
+
+
+
+
+  - [x] 14.1 Integrate gitgraph-js library
+
+
     - Install and configure gitgraph-js
     - Create GitGraphComponent wrapper
     - Style graph to match game theme
     - _Requirements: 10.1_
-  - [ ] 14.2 Render repository state as graph
+  - [x] 14.2 Render repository state as graph
+
+
     - Fetch commit history and branch structure from API
     - Convert repository state to gitgraph-js format
     - Display commits as nodes with messages
     - Display branches as colored lines
     - Highlight current HEAD position
     - _Requirements: 10.1, 10.2, 10.3, 10.5_
-  - [ ] 14.3 Implement real-time graph updates
+  - [x] 14.3 Implement real-time graph updates
+
+
     - Update graph when new commits are created
     - Update graph when branches are created or switched
     - Animate merge operations in graph
     - _Requirements: 10.2, 10.3, 10.4_
 
-  - [ ]\* 14.4 Write tests for graph component
+  - [x] 14.4 Write tests for graph component
+
+
+
     - Test graph rendering with various repository states
     - Test graph updates on state changes
     - _Requirements: 10.1, 10.2, 10.3, 10.4_
@@ -365,7 +378,8 @@ This implementation plan breaks down the GitQuest game into discrete, actionable
     - Update map visual state based on completed chapters
     - Unlock new regions as chapters are completed
     - _Requirements: 5.2, 4.6_
-  - [ ]\* 16.4 Write tests for progress map
+  - [ ] 16.4 Write tests for progress map
+
     - Test map rendering
     - Test region unlock logic
     - Test navigation on click
