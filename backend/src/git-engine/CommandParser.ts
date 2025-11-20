@@ -1,0 +1,274 @@
+/**
+ * CommandParser - Parses Git command strings into structured command objects
+ */
+
+export interface ParsedCommand {
+  command: string; // Main command (e.g., 'add', 'commit', 'branch')
+  subcommand?: string; // Subcommand (e.g., 'add' in 'remote add')
+  arguments: string[]; // Positional arguments
+  flags: Record<string, boolean | string>; // Flags like -m, --hard, etc.
+  raw: string; // Original command string
+}
+
+export class CommandParser {
+  /**
+   * Parse a Git command string into a structured command object
+   */
+  parse(commandString: string): ParsedCommand {
+    const raw = commandString.trim();
+
+    // Remove 'git' prefix if present
+    let normalized = raw;
+    if (normalized.toLowerCase().startsWith('git ')) {
+      normalized = normalized.substring(4).trim();
+    }
+
+    // Tokenize the command
+    const tokens = this.tokenize(normalized);
+
+    if (tokens.length === 0) {
+      return {
+        command: '',
+        arguments: [],
+        flags: {},
+        raw,
+      };
+    }
+
+    // Extract command (first token)
+    const command = tokens[0];
+
+    // Parse remaining tokens
+    const { subcommand, arguments: args, flags } = this.parseTokens(tokens.slice(1));
+
+    return {
+      command,
+      subcommand,
+      arguments: args,
+      flags,
+      raw,
+    };
+  }
+
+  /**
+   * Tokenize a command string, respecting quotes
+   */
+  private tokenize(input: string): string[] {
+    const tokens: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    let quoteChar = '';
+
+    for (let i = 0; i < input.length; i++) {
+      const char = input[i];
+
+      if ((char === '"' || char === "'") && !inQuotes) {
+        inQuotes = true;
+        quoteChar = char;
+      } else if (char === quoteChar && inQuotes) {
+        inQuotes = false;
+        quoteChar = '';
+      } else if (char === ' ' && !inQuotes) {
+        if (current) {
+          tokens.push(current);
+          current = '';
+        }
+      } else {
+        current += char;
+      }
+    }
+
+    if (current) {
+      tokens.push(current);
+    }
+
+    return tokens;
+  }
+
+  /**
+   * Parse tokens into subcommand, arguments, and flags
+   */
+  private parseTokens(tokens: string[]): {
+    subcommand?: string;
+    arguments: string[];
+    flags: Record<string, boolean | string>;
+  } {
+    const args: string[] = [];
+    const flags: Record<string, boolean | string> = {};
+    let subcommand: string | undefined;
+    let expectingFlagValue = false;
+    let currentFlag = '';
+
+    for (let i = 0; i < tokens.length; i++) {
+      const token = tokens[i];
+
+      if (expectingFlagValue) {
+        // This token is the value for the previous flag
+        flags[currentFlag] = token;
+        expectingFlagValue = false;
+        currentFlag = '';
+        continue;
+      }
+
+      if (token.startsWith('--')) {
+        // Long flag (e.g., --hard, --oneline)
+        const flagName = token.substring(2);
+
+        // Check if flag has value (e.g., --mode=hard)
+        if (flagName.includes('=')) {
+          const [name, value] = flagName.split('=');
+          flags[name] = value;
+        } else {
+          flags[flagName] = true;
+        }
+      } else if (token.startsWith('-') && token.length > 1) {
+        // Short flag (e.g., -m, -b)
+        const flagName = token.substring(1);
+
+        // Check if this is a flag that expects a value (like -m for commit message)
+        if (this.flagExpectsValue(flagName)) {
+          currentFlag = flagName;
+          expectingFlagValue = true;
+        } else {
+          // Boolean flag
+          flags[flagName] = true;
+        }
+      } else {
+        // Regular argument
+        // First non-flag argument after command might be a subcommand
+        if (args.length === 0 && !subcommand && this.isSubcommand(token)) {
+          subcommand = token;
+        } else {
+          args.push(token);
+        }
+      }
+    }
+
+    return { subcommand, arguments: args, flags };
+  }
+
+  /**
+   * Check if a flag expects a value
+   */
+  private flagExpectsValue(flag: string): boolean {
+    const flagsWithValues = ['m', 'message'];
+    return flagsWithValues.includes(flag);
+  }
+
+  /**
+   * Check if a token is a known subcommand
+   */
+  private isSubcommand(token: string): boolean {
+    const subcommands = ['add', 'remove', 'rm', 'list', '-v'];
+    return subcommands.includes(token);
+  }
+
+  /**
+   * Suggest a correction for an invalid command
+   */
+  suggestCorrection(invalidCommand: string): string {
+    const normalized = invalidCommand.toLowerCase().trim();
+
+    // Remove 'git' prefix if present
+    const withoutGit = normalized.startsWith('git ') ? normalized.substring(4).trim() : normalized;
+
+    const commands = [
+      'add',
+      'commit',
+      'status',
+      'log',
+      'branch',
+      'checkout',
+      'merge',
+      'reset',
+      'remote',
+      'clone',
+      'push',
+      'pull',
+      'fetch',
+    ];
+
+    // Find closest match using Levenshtein distance
+    let closestMatch = '';
+    let minDistance = Infinity;
+
+    for (const cmd of commands) {
+      const distance = this.levenshteinDistance(withoutGit.split(' ')[0], cmd);
+      if (distance < minDistance && distance <= 2) {
+        minDistance = distance;
+        closestMatch = cmd;
+      }
+    }
+
+    if (closestMatch) {
+      return `Did you mean 'git ${closestMatch}'?`;
+    }
+
+    return "Unknown command. Try 'git status', 'git add', or 'git commit'.";
+  }
+
+  /**
+   * Calculate Levenshtein distance between two strings
+   */
+  private levenshteinDistance(str1: string, str2: string): number {
+    const matrix: number[][] = [];
+
+    for (let i = 0; i <= str2.length; i++) {
+      matrix[i] = [i];
+    }
+
+    for (let j = 0; j <= str1.length; j++) {
+      matrix[0][j] = j;
+    }
+
+    for (let i = 1; i <= str2.length; i++) {
+      for (let j = 1; j <= str1.length; j++) {
+        if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+          matrix[i][j] = matrix[i - 1][j - 1];
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j - 1] + 1, // substitution
+            matrix[i][j - 1] + 1, // insertion
+            matrix[i - 1][j] + 1 // deletion
+          );
+        }
+      }
+    }
+
+    return matrix[str2.length][str1.length];
+  }
+
+  /**
+   * Validate a parsed command
+   */
+  validate(parsed: ParsedCommand): { valid: boolean; error?: string } {
+    if (!parsed.command) {
+      return { valid: false, error: 'No command provided' };
+    }
+
+    const validCommands = [
+      'add',
+      'commit',
+      'status',
+      'log',
+      'branch',
+      'checkout',
+      'merge',
+      'reset',
+      'remote',
+      'clone',
+      'push',
+      'pull',
+      'fetch',
+    ];
+
+    if (!validCommands.includes(parsed.command)) {
+      return {
+        valid: false,
+        error: `'${parsed.command}' is not a git command. ${this.suggestCorrection(parsed.command)}`,
+      };
+    }
+
+    return { valid: true };
+  }
+}

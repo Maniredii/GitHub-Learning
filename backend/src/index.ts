@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import db from './database/db';
 import authRoutes from './routes/authRoutes';
+import gitRoutes from './routes/gitRoutes';
 
 dotenv.config();
 
@@ -23,16 +24,16 @@ app.get('/health', async (_req: Request, res: Response) => {
   try {
     // Check database connection
     await db.raw('SELECT 1');
-    res.json({ 
-      status: 'ok', 
+    res.json({
+      status: 'ok',
       message: 'GitQuest API is running',
-      database: 'connected'
+      database: 'connected',
     });
   } catch (error) {
-    res.status(503).json({ 
-      status: 'error', 
+    res.status(503).json({
+      status: 'error',
       message: 'GitQuest API is running but database is unavailable',
-      database: 'disconnected'
+      database: 'disconnected',
     });
   }
 });
@@ -44,6 +45,9 @@ app.get('/api', (_req: Request, res: Response) => {
 
 // Authentication routes
 app.use('/api/auth', authRoutes);
+
+// Git command execution routes
+app.use('/api/git', gitRoutes);
 
 // Start server
 app.listen(PORT, () => {
