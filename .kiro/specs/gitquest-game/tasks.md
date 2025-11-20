@@ -85,7 +85,7 @@ This implementation plan breaks down the GitQuest game into discrete, actionable
     - Format output to match real Git log appearance
     - _Requirements: 3.4_
 
-  - [ ]\* 4.5 Write unit tests for Git engine core
+  - [ ] 4.5 Write unit tests for Git engine core
     - Test commit creation and hash generation
     - Test staging and unstaging operations
     - Test commit history traversal

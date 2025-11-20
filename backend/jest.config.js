@@ -10,8 +10,8 @@ module.exports = {
     '!src/**/__tests__/**'
   ],
   moduleNameMapper: {
-    '^shared/(.*)$': '<rootDir>/../shared/$1',
-    '^uuid$': require.resolve('uuid')
+    '^shared/(.*)$': '<rootDir>/../shared/$1'
   },
+  setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
   testTimeout: 30000
 };
