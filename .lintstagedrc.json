@@ -8,6 +8,9 @@
   "shared/**/*.ts": [
     "prettier --write"
   ],
+  "{backend,frontend,shared,.kiro}/**/*.{json,md}": [
+    "prettier --write"
+  ],
   "*.{json,md}": [
     "prettier --write"
   ]
