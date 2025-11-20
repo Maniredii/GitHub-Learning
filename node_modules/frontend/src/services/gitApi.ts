@@ -75,4 +75,41 @@ export const gitApi = {
 
     return response.json();
   },
+
+  async getFileContent(
+    repositoryId: string,
+    filePath: string
+  ): Promise<{ content: string; modified: boolean }> {
+    const repository = await this.getRepository(repositoryId);
+    const file = repository.state.workingDirectory[filePath];
+    
+    if (!file) {
+      throw new Error(`File not found: ${filePath}`);
+    }
+    
+    return file;
+  },
+
+  async updateFileContent(
+    repositoryId: string,
+    filePath: string,
+    content: string
+  ): Promise<{ state: RepositoryState }> {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/git/repository/${repositoryId}/file`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: JSON.stringify({ filePath, content }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || 'Failed to update file');
+    }
+
+    return response.json();
+  },
 };

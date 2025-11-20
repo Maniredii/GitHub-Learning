@@ -166,6 +166,60 @@ The Git Command Execution API allows clients to execute Git commands against sim
 
 ---
 
+### 6. Update File in Working Directory
+
+**Endpoint:** `PUT /api/git/repository/:id/file`
+
+**Description:** Updates a file's content in the repository's working directory. This is useful for code editor integration.
+
+**Request Body:**
+
+```json
+{
+  "filePath": "src/app.js",
+  "content": "console.log('Updated content');"
+}
+```
+
+**Parameters:**
+
+- `filePath` (string, required): Path to the file in the working directory
+- `content` (string, required): New content for the file
+
+**Success Response (200):**
+
+```json
+{
+  "message": "File updated successfully",
+  "state": {
+    "workingDirectory": {
+      "src/app.js": {
+        "content": "console.log('Updated content');",
+        "modified": true
+      }
+    },
+    "stagingArea": {},
+    "commits": [],
+    "branches": [],
+    "head": "main",
+    "remotes": []
+  }
+}
+```
+
+**Error Response (400):**
+
+```json
+{
+  "error": {
+    "code": "INVALID_FILE_PATH",
+    "message": "File path must be a non-empty string"
+  }
+}
+```
+
+---
+
 ## Supported Git Commands
 
 The command parser supports the following Git commands:

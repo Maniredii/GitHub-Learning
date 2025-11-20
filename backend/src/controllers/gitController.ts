@@ -246,3 +246,64 @@ export const deleteRepository = async (req: Request, res: Response): Promise<voi
     });
   }
 };
+
+/**
+ * PUT /api/git/repository/:id/file
+ * Update a file in the repository's working directory
+ */
+export const updateFile = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { filePath, content } = req.body;
+
+    if (!id) {
+      res.status(400).json({
+        error: {
+          code: 'MISSING_REPOSITORY_ID',
+          message: 'Repository ID is required',
+        },
+      });
+      return;
+    }
+
+    if (!filePath || typeof filePath !== 'string') {
+      res.status(400).json({
+        error: {
+          code: 'INVALID_FILE_PATH',
+          message: 'File path must be a non-empty string',
+        },
+      });
+      return;
+    }
+
+    if (content === undefined || content === null) {
+      res.status(400).json({
+        error: {
+          code: 'MISSING_CONTENT',
+          message: 'File content is required',
+        },
+      });
+      return;
+    }
+
+    // Get repository
+    const repository = getUserRepository(id);
+
+    // Update file in working directory
+    repository.updateFile(filePath, content);
+
+    res.status(200).json({
+      message: 'File updated successfully',
+      state: repository.toJSON(),
+    });
+  } catch (error: any) {
+    console.error('Error updating file:', error);
+    res.status(500).json({
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'An error occurred while updating the file',
+        details: error.message,
+      },
+    });
+  }
+};

@@ -120,6 +120,16 @@ export class Repository {
   }
 
   /**
+   * Update a file in the working directory
+   */
+  updateFile(filePath: string, content: string): void {
+    this.workingDirectory[filePath] = {
+      content,
+      modified: true,
+    };
+  }
+
+  /**
    * Create a new repository with initial branch
    */
   static create(initialFiles: FileTree = {}): Repository {

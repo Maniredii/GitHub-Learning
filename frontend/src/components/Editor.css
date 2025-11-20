@@ -1,0 +1,193 @@
+.editor-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background-color: #1e1e1e;
+  border: 1px solid #3c3c3c;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: #252526;
+  border-bottom: 1px solid #3c3c3c;
+}
+
+.editor-file-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.editor-file-path {
+  color: #cccccc;
+  font-size: 13px;
+  font-family: 'Courier New', monospace;
+  font-weight: 500;
+}
+
+.editor-conflict-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background-color: rgba(255, 193, 7, 0.2);
+  border: 1px solid #ffc107;
+  border-radius: 3px;
+  color: #ffc107;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.editor-resolved-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background-color: rgba(26, 127, 55, 0.2);
+  border: 1px solid #1a7f37;
+  border-radius: 3px;
+  color: #2ea043;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.editor-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.editor-button {
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid #3c3c3c;
+  border-radius: 3px;
+  background-color: #2d2d30;
+  color: #cccccc;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.editor-button:hover:not(:disabled) {
+  background-color: #3e3e42;
+  border-color: #4c4c4c;
+}
+
+.editor-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.editor-button-save-active {
+  background-color: #0e639c;
+  border-color: #0e639c;
+  color: #ffffff;
+}
+
+.editor-button-save-active:hover:not(:disabled) {
+  background-color: #1177bb;
+  border-color: #1177bb;
+}
+
+.editor-button-accept-current {
+  background-color: #1a7f37;
+  border-color: #1a7f37;
+  color: #ffffff;
+}
+
+.editor-button-accept-current:hover:not(:disabled) {
+  background-color: #2ea043;
+  border-color: #2ea043;
+}
+
+.editor-button-accept-incoming {
+  background-color: #0969da;
+  border-color: #0969da;
+  color: #ffffff;
+}
+
+.editor-button-accept-incoming:hover:not(:disabled) {
+  background-color: #1f7ce8;
+  border-color: #1f7ce8;
+}
+
+.editor-content {
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Conflict marker highlighting */
+.conflict-marker-current {
+  background-color: rgba(26, 127, 55, 0.2);
+}
+
+.conflict-marker-incoming {
+  background-color: rgba(9, 105, 218, 0.2);
+}
+
+.conflict-marker-separator {
+  background-color: rgba(158, 158, 158, 0.2);
+}
+
+
+/* Loading state */
+.editor-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #cccccc;
+  gap: 16px;
+}
+
+.editor-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #3c3c3c;
+  border-top-color: #0e639c;
+  border-radius: 50%;
+  animation: editor-spin 1s linear infinite;
+}
+
+@keyframes editor-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.editor-loading-text {
+  font-size: 14px;
+  font-family: 'Courier New', monospace;
+}
+
+/* Error state */
+.editor-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #cccccc;
+  gap: 16px;
+  padding: 20px;
+}
+
+.editor-error-icon {
+  font-size: 48px;
+}
+
+.editor-error-message {
+  font-size: 14px;
+  text-align: center;
+  color: #f48771;
+  font-family: 'Courier New', monospace;
+}

@@ -5,6 +5,7 @@ import {
   createRepository,
   updateRepository,
   deleteRepository,
+  updateFile,
 } from '../controllers/gitController';
 
 const router = Router();
@@ -38,5 +39,11 @@ router.put('/repository/:id', updateRepository);
  * Delete a repository
  */
 router.delete('/repository/:id', deleteRepository);
+
+/**
+ * PUT /api/git/repository/:id/file
+ * Update a file in the repository's working directory
+ */
+router.put('/repository/:id/file', updateFile);
 
 export default router;
