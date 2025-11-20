@@ -10,6 +10,7 @@ import progressRoutes from './routes/progressRoutes';
 import achievementRoutes from './routes/achievementRoutes';
 import bossBattleRoutes from './routes/bossBattleRoutes';
 import hintRoutes from './routes/hintRoutes';
+import userRoutes from './routes/userRoutes';
 
 dotenv.config();
 
@@ -70,6 +71,9 @@ app.use('/api/boss-battles', bossBattleRoutes);
 
 // Hint routes
 app.use('/api/hints', hintRoutes);
+
+// User routes
+app.use('/api/users', userRoutes);
 
 // Start server
 app.listen(PORT, () => {

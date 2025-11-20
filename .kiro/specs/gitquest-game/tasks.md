@@ -380,7 +380,7 @@ This implementation plan breaks down the GitQuest game into discrete, actionable
     - Test progressive hint display
     - _Requirements: 11.1, 11.2, 11.3_
 
-- [ ] 18. Implement user profile and dashboard
+- [x] 18. Implement user profile and dashboard
   - Create ProfileView component displaying username, level, XP, and rank
   - Display earned achievement badges in grid layout
   - Show progress statistics (quests completed, chapters unlocked)
@@ -388,8 +388,8 @@ This implementation plan breaks down the GitQuest game into discrete, actionable
   - Fetch user data from GET /api/users/profile endpoint
   - _Requirements: 1.4, 6.3_
 
-- [ ] 19. Build authentication UI
-  - [ ] 19.1 Create registration form
+- [-] 19. Build authentication UI
+  - [-] 19.1 Create registration form
     - Build registration form with email, username, password fields
     - Implement client-side validation
     - Call POST /api/auth/register on submission
@@ -506,7 +506,7 @@ This implementation plan breaks down the GitQuest game into discrete, actionable
     - Compress and minify production builds
     - Implement asset caching with service workers
     - _Requirements: 14.3, 14.4_
-  - [ ]\* 23.4 Perform load testing
+  - [ ] 23.4 Perform load testing
     - Use k6 or Artillery to simulate 1000 concurrent users
     - Measure API response times under load
     - Identify and fix performance bottlenecks
