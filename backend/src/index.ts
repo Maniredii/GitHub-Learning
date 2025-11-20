@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 import db from './database/db';
 import authRoutes from './routes/authRoutes';
 import gitRoutes from './routes/gitRoutes';
+import questRoutes from './routes/questRoutes';
+import chapterRoutes from './routes/chapterRoutes';
 
 dotenv.config();
 
@@ -48,6 +50,10 @@ app.use('/api/auth', authRoutes);
 
 // Git command execution routes
 app.use('/api/git', gitRoutes);
+
+// Quest and chapter routes
+app.use('/api/quests', questRoutes);
+app.use('/api/chapters', chapterRoutes);
 
 // Start server
 app.listen(PORT, () => {

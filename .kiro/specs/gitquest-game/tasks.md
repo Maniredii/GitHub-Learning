@@ -155,24 +155,24 @@ This implementation plan breaks down the GitQuest game into discrete, actionable
   - Return command output, repository state, and any errors
   - _Requirements: 2.2, 2.4, 11.4_
 
-- [ ] 8. Create quest content management system
-  - [ ] 8.1 Define quest data structure
+- [x] 8. Create quest content management system
+  - [x] 8.1 Define quest data structure
     - Create Quest schema (id, chapter_id, title, narrative, objective, hints, validation_criteria)
     - Create Chapter schema (id, title, description, order, unlock_requirements)
     - Seed database with quest content from curriculum mapping
     - _Requirements: 4.1, 4.2_
-  - [ ] 8.2 Implement quest API endpoints
+  - [x] 8.2 Implement quest API endpoints
     - Create GET /api/quests - list all quests with lock status
     - Create GET /api/quests/:id - get specific quest details
     - Create GET /api/chapters - list all chapters
     - Create GET /api/chapters/:id/quests - get quests for a chapter
     - _Requirements: 4.1, 4.6_
-  - [ ] 8.3 Implement quest validation logic
+  - [x] 8.3 Implement quest validation logic
     - Create validation functions that check if quest objectives are met
     - Compare expected repository state with actual state
     - Return success/failure with specific feedback
     - _Requirements: 4.3_
-  - [ ]\* 8.4 Write tests for quest system
+  - [x] 8.4 Write tests for quest system
     - Test quest retrieval and filtering
     - Test quest validation logic
     - Test unlock requirements
