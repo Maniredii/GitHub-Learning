@@ -388,26 +388,26 @@ This implementation plan breaks down the GitQuest game into discrete, actionable
   - Fetch user data from GET /api/users/profile endpoint
   - _Requirements: 1.4, 6.3_
 
-- [-] 19. Build authentication UI
-  - [-] 19.1 Create registration form
+- [x] 19. Build authentication UI
+  - [x] 19.1 Create registration form
     - Build registration form with email, username, password fields
     - Implement client-side validation
     - Call POST /api/auth/register on submission
     - Store JWT token in localStorage on success
     - Redirect to game dashboard after registration
     - _Requirements: 1.1, 1.2_
-  - [ ] 19.2 Create login form
+  - [x] 19.2 Create login form
     - Build login form with email/username and password fields
     - Call POST /api/auth/login on submission
     - Store JWT token and restore user progress
     - Redirect to last accessed quest or dashboard
     - _Requirements: 1.1, 1.3_
-  - [ ] 19.3 Implement authentication state management
+  - [x] 19.3 Implement authentication state management
     - Create auth context/store for user state
     - Implement protected routes requiring authentication
     - Handle token expiration and auto-logout
     - _Requirements: 1.3_
-  - [ ] 19.4 Write tests for authentication UI
+  - [x] 19.4 Write tests for authentication UI
     - Test registration form validation
     - Test login flow
     - Test protected route access
