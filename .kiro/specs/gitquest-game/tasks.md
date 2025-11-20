@@ -85,34 +85,34 @@ This implementation plan breaks down the GitQuest game into discrete, actionable
     - Format output to match real Git log appearance
     - _Requirements: 3.4_
 
-  - [ ] 4.5 Write unit tests for Git engine core
+  - [x] 4.5 Write unit tests for Git engine core
     - Test commit creation and hash generation
     - Test staging and unstaging operations
     - Test commit history traversal
     - Test working directory state management
     - _Requirements: 3.1, 3.2, 3.3, 3.4_
 
-- [ ] 5. Implement branching and merging in Git engine
-  - [ ] 5.1 Implement branch operations
+- [x] 5. Implement branching and merging in Git engine
+  - [x] 5.1 Implement branch operations
     - Implement `git branch` - list all branches
     - Implement `git branch <name>` - create new branch at current commit
     - Implement `git checkout <branch>` - switch to different branch
     - Implement `git checkout -b <name>` - create and switch to new branch
     - Update HEAD to point to current branch
     - _Requirements: 3.5, 3.7_
-  - [ ] 5.2 Implement merge functionality
+  - [x] 5.2 Implement merge functionality
     - Implement `git merge <branch>` - merge specified branch into current branch
     - Detect fast-forward merge scenarios
     - Create merge commits with two parents
     - Detect merge conflicts when same file modified in both branches
     - Generate conflict markers (<<<<<<, ======, >>>>>>) in conflicted files
     - _Requirements: 3.6_
-  - [ ] 5.3 Implement reset and checkout for files
+  - [x] 5.3 Implement reset and checkout for files
     - Implement `git reset HEAD <file>` - unstage file
     - Implement `git reset --hard <commit>` - reset to specific commit
     - Implement `git checkout -- <file>` - discard working directory changes
     - _Requirements: 3.8_
-  - [ ]\* 5.4 Write tests for branching and merging
+  - [x] 5.4 Write tests for branching and merging
     - Test branch creation and switching
     - Test fast-forward merges
     - Test three-way merges
@@ -139,7 +139,7 @@ This implementation plan breaks down the GitQuest game into discrete, actionable
     - Implement pull request submission (store as database record)
     - Simulate pull request review and merge workflow
     - _Requirements: 9.5_
-  - [ ]\* 6.4 Write tests for remote operations
+  - [ ] 6.4 Write tests for remote operations
     - Test remote registration
     - Test clone operation
     - Test push and pull operations

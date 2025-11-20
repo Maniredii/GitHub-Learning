@@ -1,0 +1,282 @@
+import { Commit } from './models/Commit';
+import { Repository } from './models/Repository';
+import { FileTree } from 'shared/src/types';
+
+/**
+ * Represents a merge conflict in a file
+ */
+export interface Conflict {
+  filePath: string;
+  oursContent: string;
+  theirsContent: string;
+}
+
+/**
+ * Result of a merge operation
+ */
+export interface MergeResult {
+  success: boolean;
+  conflicts: Conflict[];
+  mergedTree?: FileTree;
+  message?: string;
+}
+
+/**
+ * MergeEngine - Handles merge operations and conflict detection
+ */
+export class MergeEngine {
+  /**
+   * Check if a fast-forward merge is possible
+   * Fast-forward is possible when the target commit is a direct ancestor of the current commit
+   */
+  canFastForward(repository: Repository, targetCommitHash: string): boolean {
+    const currentCommit = repository.getCurrentCommit();
+    if (!currentCommit) {
+      return true; // Empty repository, can fast-forward
+    }
+
+    // Traverse history from target to see if we reach current
+    let currentHash: string | null = targetCommitHash;
+    while (currentHash) {
+      if (currentHash === currentCommit.hash) {
+        return true;
+      }
+      const commit = repository.getCommit(currentHash);
+      if (!commit) break;
+      currentHash = commit.parent;
+    }
+
+    return false;
+  }
+
+  /**
+   * Perform a fast-forward merge
+   */
+  performFastForward(repository: Repository, targetCommitHash: string): MergeResult {
+    const targetCommit = repository.getCommit(targetCommitHash);
+    if (!targetCommit) {
+      return {
+        success: false,
+        conflicts: [],
+        message: 'Target commit not found',
+      };
+    }
+
+    // Update current branch to point to target commit
+    const currentBranch = repository.getCurrentBranch();
+    if (currentBranch) {
+      currentBranch.updateCommit(targetCommitHash);
+    } else {
+      repository.updateHead(targetCommitHash);
+    }
+
+    // Update working directory
+    repository.workingDirectory = { ...targetCommit.tree };
+
+    return {
+      success: true,
+      conflicts: [],
+      mergedTree: targetCommit.tree,
+      message: 'Fast-forward',
+    };
+  }
+
+  /**
+   * Find the common ancestor of two commits
+   */
+  private findCommonAncestor(
+    repository: Repository,
+    commit1Hash: string,
+    commit2Hash: string
+  ): Commit | null {
+    // Get all ancestors of commit1
+    const ancestors1 = new Set<string>();
+    let current: string | null = commit1Hash;
+    while (current) {
+      ancestors1.add(current);
+      const commit = repository.getCommit(current);
+      if (!commit) break;
+      current = commit.parent;
+    }
+
+    // Traverse commit2's history until we find a common ancestor
+    current = commit2Hash;
+    while (current) {
+      if (ancestors1.has(current)) {
+        return repository.getCommit(current);
+      }
+      const commit = repository.getCommit(current);
+      if (!commit) break;
+      current = commit.parent;
+    }
+
+    return null;
+  }
+
+  /**
+   * Perform a three-way merge
+   */
+  performThreeWayMerge(
+    repository: Repository,
+    oursCommit: Commit,
+    theirsCommit: Commit
+  ): MergeResult {
+    // Find common ancestor
+    const baseCommit = this.findCommonAncestor(repository, oursCommit.hash, theirsCommit.hash);
+    const baseTree = baseCommit ? baseCommit.tree : {};
+
+    // Detect conflicts
+    const conflicts = this.detectConflicts(baseTree, oursCommit.tree, theirsCommit.tree);
+
+    if (conflicts.length > 0) {
+      // Generate merged tree with conflict markers
+      const mergedTree = this.generateConflictedTree(oursCommit.tree, theirsCommit.tree, conflicts);
+
+      return {
+        success: false,
+        conflicts: conflicts,
+        mergedTree: mergedTree,
+        message: 'Automatic merge failed; fix conflicts and then commit the result.',
+      };
+    }
+
+    // No conflicts - perform automatic merge
+    const mergedTree = this.autoMerge(baseTree, oursCommit.tree, theirsCommit.tree);
+
+    return {
+      success: true,
+      conflicts: [],
+      mergedTree: mergedTree,
+      message: "Merge made by the 'recursive' strategy.",
+    };
+  }
+
+  /**
+   * Detect conflicts between two branches
+   */
+  detectConflicts(baseTree: FileTree, oursTree: FileTree, theirsTree: FileTree): Conflict[] {
+    const conflicts: Conflict[] = [];
+    const allFiles = new Set([...Object.keys(oursTree), ...Object.keys(theirsTree)]);
+
+    allFiles.forEach((filePath) => {
+      const baseExists = baseTree[filePath] !== undefined;
+      const oursExists = oursTree[filePath] !== undefined;
+      const theirsExists = theirsTree[filePath] !== undefined;
+
+      // Skip if file doesn't exist in both branches
+      if (!oursExists || !theirsExists) {
+        return;
+      }
+
+      const baseContent = baseTree[filePath]?.content || '';
+      const oursContent = oursTree[filePath].content;
+      const theirsContent = theirsTree[filePath].content;
+
+      // Check if both branches modified the same file differently
+      const oursModified = !baseExists || oursContent !== baseContent;
+      const theirsModified = !baseExists || theirsContent !== baseContent;
+
+      // Only a conflict if BOTH modified the SAME file AND the changes are different
+      if (oursModified && theirsModified && oursContent !== theirsContent) {
+        conflicts.push({
+          filePath,
+          oursContent,
+          theirsContent,
+        });
+      }
+    });
+
+    return conflicts;
+  }
+
+  /**
+   * Generate conflict markers in a file
+   */
+  generateConflictMarkers(filePath: string, oursContent: string, theirsContent: string): string {
+    return `<<<<<<< HEAD
+${oursContent}
+=======
+${theirsContent}
+>>>>>>> ${filePath}`;
+  }
+
+  /**
+   * Generate a tree with conflict markers
+   */
+  private generateConflictedTree(
+    oursTree: FileTree,
+    theirsTree: FileTree,
+    conflicts: Conflict[]
+  ): FileTree {
+    const mergedTree: FileTree = { ...oursTree };
+
+    conflicts.forEach((conflict) => {
+      mergedTree[conflict.filePath] = {
+        content: this.generateConflictMarkers(
+          conflict.filePath,
+          conflict.oursContent,
+          conflict.theirsContent
+        ),
+        modified: true,
+      };
+    });
+
+    // Add files that only exist in theirs
+    Object.keys(theirsTree).forEach((filePath) => {
+      if (!mergedTree[filePath]) {
+        mergedTree[filePath] = { ...theirsTree[filePath] };
+      }
+    });
+
+    return mergedTree;
+  }
+
+  /**
+   * Automatically merge non-conflicting changes
+   */
+  private autoMerge(baseTree: FileTree, oursTree: FileTree, theirsTree: FileTree): FileTree {
+    const mergedTree: FileTree = {};
+
+    // Get all files from both branches
+    const allFiles = new Set([
+      ...Object.keys(baseTree),
+      ...Object.keys(oursTree),
+      ...Object.keys(theirsTree),
+    ]);
+
+    allFiles.forEach((filePath) => {
+      const baseExists = baseTree[filePath] !== undefined;
+      const oursExists = oursTree[filePath] !== undefined;
+      const theirsExists = theirsTree[filePath] !== undefined;
+
+      const baseContent = baseTree[filePath]?.content || '';
+      const oursContent = oursTree[filePath]?.content || '';
+      const theirsContent = theirsTree[filePath]?.content || '';
+
+      // Check if file was modified
+      const oursModified = oursExists && (!baseExists || oursContent !== baseContent);
+      const theirsModified = theirsExists && (!baseExists || theirsContent !== baseContent);
+
+      if (oursModified && !theirsModified) {
+        // Only we modified it
+        mergedTree[filePath] = { ...oursTree[filePath] };
+      } else if (!oursModified && theirsModified) {
+        // Only they modified it
+        mergedTree[filePath] = { ...theirsTree[filePath] };
+      } else if (!oursModified && !theirsModified) {
+        // Neither modified (or both deleted)
+        if (oursExists) {
+          mergedTree[filePath] = { ...oursTree[filePath] };
+        } else if (theirsExists) {
+          mergedTree[filePath] = { ...theirsTree[filePath] };
+        }
+      } else {
+        // Both modified - should have been caught as conflict
+        // Use ours as fallback
+        mergedTree[filePath] = { ...oursTree[filePath] };
+      }
+    });
+
+    return mergedTree;
+  }
+}
