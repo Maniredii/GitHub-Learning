@@ -1,0 +1,16 @@
+# Heroku deployment configuration
+# Use this for container-based deployment on Heroku
+
+build:
+  docker:
+    web: backend/Dockerfile
+  config:
+    WORKDIR: /app
+
+run:
+  web: node backend/dist/index.js
+
+release:
+  command:
+    - npm run migrate:latest --workspace=backend
+  image: web

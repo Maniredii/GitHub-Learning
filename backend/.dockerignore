@@ -1,0 +1,40 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Build output
+dist
+
+# Tests
+**/__tests__
+**/*.test.ts
+**/*.spec.ts
+jest.config.js
+coverage
+
+# Development files
+*.md
+.git
+.gitignore
+.eslintrc.json
+.prettierrc
+tsconfig.json
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Load tests
+load-tests

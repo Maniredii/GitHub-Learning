@@ -1,0 +1,134 @@
+# Alert Configuration Template
+# Use this as a reference for setting up alerts in your monitoring platform
+
+alerts:
+  # Critical Alerts - Immediate action required
+  critical:
+    - name: API Down
+      condition: "status_code >= 500 for 5 minutes"
+      threshold: "error_rate > 10%"
+      notification:
+        - email
+        - sms
+        - slack
+      description: "API is returning 5xx errors consistently"
+      
+    - name: Database Connection Failed
+      condition: "database_status != 'connected' for 2 minutes"
+      notification:
+        - email
+        - sms
+        - slack
+      description: "Cannot connect to PostgreSQL database"
+      
+    - name: High Error Rate
+      condition: "errors > 100 per minute for 5 minutes"
+      notification:
+        - email
+        - slack
+      description: "Abnormally high error rate detected"
+      
+    - name: Service Unavailable
+      condition: "uptime_check fails 3 times consecutively"
+      notification:
+        - email
+        - sms
+        - slack
+      description: "Service is not responding to health checks"
+
+  # Warning Alerts - Investigate soon
+  warning:
+    - name: Slow Response Times
+      condition: "p95_response_time > 2000ms for 10 minutes"
+      notification:
+        - email
+        - slack
+      description: "API response times are degraded"
+      
+    - name: High Memory Usage
+      condition: "memory_usage > 90% for 10 minutes"
+      notification:
+        - email
+        - slack
+      description: "Server memory usage is critically high"
+      
+    - name: High CPU Usage
+      condition: "cpu_usage > 80% for 15 minutes"
+      notification:
+        - email
+        - slack
+      description: "Server CPU usage is high"
+      
+    - name: Cache Unavailable
+      condition: "cache_status != 'connected' for 5 minutes"
+      notification:
+        - email
+        - slack
+      description: "Redis cache is not available"
+      
+    - name: Elevated Error Rate
+      condition: "error_rate > 1% for 10 minutes"
+      notification:
+        - slack
+      description: "Error rate is higher than normal"
+
+  # Info Alerts - Good to know
+  info:
+    - name: New Deployment
+      condition: "deployment_event"
+      notification:
+        - slack
+      description: "New version deployed"
+      
+    - name: High Traffic
+      condition: "requests_per_minute > 1000"
+      notification:
+        - slack
+      description: "Traffic spike detected"
+      
+    - name: Slow Database Queries
+      condition: "db_query_time > 1000ms"
+      notification:
+        - slack
+      description: "Database queries are slow"
+
+# Notification Channels
+notification_channels:
+  email:
+    primary: "alerts@yourdomain.com"
+    secondary: "team@yourdomain.com"
+    
+  sms:
+    on_call: "+1234567890"
+    
+  slack:
+    webhook: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+    channel: "#gitquest-alerts"
+    
+  pagerduty:
+    integration_key: "YOUR_PAGERDUTY_KEY"
+
+# Alert Schedule
+schedule:
+  business_hours:
+    days: ["monday", "tuesday", "wednesday", "thursday", "friday"]
+    hours: "09:00-17:00"
+    timezone: "America/New_York"
+    
+  on_call:
+    rotation: "weekly"
+    escalation_timeout: "15 minutes"
+
+# Alert Thresholds by Environment
+thresholds:
+  production:
+    error_rate: 0.1  # 0.1%
+    response_time_p95: 500  # ms
+    response_time_p99: 1000  # ms
+    uptime: 99.9  # %
+    
+  staging:
+    error_rate: 1.0  # 1%
+    response_time_p95: 1000  # ms
+    response_time_p99: 2000  # ms
+    uptime: 99.0  # %

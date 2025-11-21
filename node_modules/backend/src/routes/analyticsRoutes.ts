@@ -1,12 +1,12 @@
 import { Router } from 'express';
 import analyticsController from '../controllers/analyticsController';
-import { authenticateToken } from '../middleware/authMiddleware';
+import { authMiddleware } from '../middleware/authMiddleware';
 
 const router = Router();
 
 // All analytics routes require authentication
 // In production, you'd want to add admin-only middleware here
-router.use(authenticateToken);
+router.use(authMiddleware);
 
 /**
  * GET /api/analytics/summary

@@ -1,0 +1,77 @@
+{
+  "monitors": [
+    {
+      "name": "GitQuest API Health Check",
+      "type": "http",
+      "url": "https://api.gitquest.yourdomain.com/health",
+      "interval": 300,
+      "timeout": 30,
+      "method": "GET",
+      "expectedStatusCode": 200,
+      "alertThreshold": 2,
+      "description": "Monitors backend API health endpoint"
+    },
+    {
+      "name": "GitQuest Frontend",
+      "type": "http",
+      "url": "https://gitquest.yourdomain.com",
+      "interval": 300,
+      "timeout": 30,
+      "method": "GET",
+      "expectedStatusCode": 200,
+      "alertThreshold": 2,
+      "description": "Monitors frontend availability"
+    },
+    {
+      "name": "GitQuest API - Auth Endpoint",
+      "type": "http",
+      "url": "https://api.gitquest.yourdomain.com/api",
+      "interval": 300,
+      "timeout": 30,
+      "method": "GET",
+      "expectedStatusCode": 200,
+      "alertThreshold": 2,
+      "description": "Monitors API root endpoint"
+    },
+    {
+      "name": "GitQuest Database Connection",
+      "type": "keyword",
+      "url": "https://api.gitquest.yourdomain.com/health",
+      "interval": 300,
+      "timeout": 30,
+      "method": "GET",
+      "keyword": "\"database\":\"connected\"",
+      "alertThreshold": 2,
+      "description": "Monitors database connectivity through health check"
+    },
+    {
+      "name": "GitQuest Cache Connection",
+      "type": "keyword",
+      "url": "https://api.gitquest.yourdomain.com/health",
+      "interval": 300,
+      "timeout": 30,
+      "method": "GET",
+      "keyword": "\"cache\":\"connected\"",
+      "alertThreshold": 3,
+      "description": "Monitors Redis cache connectivity (warning only)"
+    }
+  ],
+  "alertContacts": [
+    {
+      "type": "email",
+      "value": "alerts@yourdomain.com",
+      "description": "Primary alert email"
+    },
+    {
+      "type": "slack",
+      "webhookUrl": "https://hooks.slack.com/services/YOUR/WEBHOOK/URL",
+      "description": "Team Slack channel"
+    }
+  ],
+  "notes": [
+    "Configure these monitors in UptimeRobot, Pingdom, or similar service",
+    "Update URLs with your actual domain names",
+    "Adjust intervals based on your monitoring plan",
+    "Set up alert contacts before enabling monitors"
+  ]
+}

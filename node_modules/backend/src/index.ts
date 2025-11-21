@@ -1,9 +1,13 @@
-import express, { Application, Request, Response } from 'express';
+import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import db from './database/db';
 import { cacheService } from './services/cacheService';
-import authRoutes from './routes/authRoutes';
+import { initSentry, Sentry } from './config/sentry';
+import {
+  metricsMiddleware,
+  getMetrics,
+} from './middleware/metricsMiddleware';
 import gitRoutes from './routes/gitRoutes';
 import questRoutes from './routes/questRoutes';
 import chapterRoutes from './routes/chapterRoutes';
@@ -18,18 +22,28 @@ import analyticsRoutes from './routes/analyticsRoutes';
 
 dotenv.config();
 
-// Initialize cache service
-cacheService.connect().catch((err) => {
-  console.warn('Cache service unavailable, continuing without cache:', err);
-});
+// Initialize Sentry first
+initSentry();
+
+// Initialize cache service (disabled for now - Redis not installed)
+// cacheService.connect().catch((err) => {
+//   console.warn('Cache service unavailable, continuing without cache:', err);
+// });
 
 const app: Application = express();
 const PORT = process.env.PORT || 3000;
 
+// Sentry request handler must be first middleware
+app.use(Sentry.Handlers.requestHandler());
+app.use(Sentry.Handlers.tracingHandler());
+
+// Metrics middleware
+app.use(metricsMiddleware);
+
 // Middleware
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: process.env.CORS_ORIGIN || 'http://localhost:1001',
   })
 );
 app.use(express.json());
@@ -56,13 +70,38 @@ app.get('/health', async (_req: Request, res: Response) => {
   }
 });
 
+// Readiness check endpoint
+app.get('/ready', async (_req: Request, res: Response) => {
+  const checks = {
+    database: false,
+    cache: false,
+  };
+
+  try {
+    await db.raw('SELECT 1');
+    checks.database = true;
+  } catch (error) {
+    // Database not ready
+  }
+
+  checks.cache = cacheService.isAvailable();
+
+  if (checks.database) {
+    res.json({ status: 'ready', checks });
+  } else {
+    res.status(503).json({ status: 'not ready', checks });
+  }
+});
+
+// Metrics endpoint
+app.get('/metrics', (_req: Request, res: Response) => {
+  res.json(getMetrics());
+});
+
 // API routes
 app.get('/api', (_req: Request, res: Response) => {
   res.json({ message: 'GitQuest API v1.0' });
 });
-
-// Authentication routes
-app.use('/api/auth', authRoutes);
 
 // Git command execution routes
 app.use('/api/git', gitRoutes);
@@ -95,10 +134,26 @@ app.use('/api/payment', paymentRoutes);
 // Analytics routes
 app.use('/api/analytics', analyticsRoutes);
 
+// Sentry error handler must be before other error handlers
+app.use(Sentry.Handlers.errorHandler());
+
+// Custom error handler
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error('Error:', err);
+  res.status(500).json({
+    error: 'Internal server error',
+    message:
+      process.env.NODE_ENV === 'development' ? err.message : undefined,
+  });
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`📊 Metrics available at /metrics`);
+  console.log(`💚 Health check at /health`);
+  console.log(`✅ Readiness check at /ready`);
 });
 
 export default app;

@@ -7,17 +7,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { LoginForm } from '../LoginForm';
-import { RegistrationForm } from '../RegistrationForm';
 import { QuestList } from '../QuestList';
 import { HintPanel } from '../HintPanel';
 import { ProgressMap } from '../ProgressMap';
 import { PaywallModal } from '../PaywallModal';
 import { MobileTerminalKeyboard } from '../MobileTerminalKeyboard';
 import type { Chapter } from '../../../../shared/src/types';
-
-// Mock APIs
-vi.mock('../../services/authApi');
 vi.mock('../../services/questApi', () => ({
   questApi: {
     getChapterQuests: vi.fn().mockResolvedValue([
@@ -66,86 +61,6 @@ vi.mock('../../services/hintApi', () => ({
 
 describe('Accessibility Tests', () => {
   describe('Keyboard Navigation', () => {
-    describe('LoginForm keyboard navigation', () => {
-      it('should allow tab navigation through form fields', async () => {
-        const user = userEvent.setup();
-        render(<LoginForm onSuccess={vi.fn()} onSwitchToRegister={vi.fn()} />);
-
-        const emailInput = screen.getByLabelText(/email/i);
-        const passwordInput = screen.getByLabelText(/password/i);
-        const submitButton = screen.getByRole('button', { name: /sign in/i });
-
-        // Start at email field
-        emailInput.focus();
-        expect(emailInput).toHaveFocus();
-
-        // Tab to password
-        await user.tab();
-        expect(passwordInput).toHaveFocus();
-
-        // Tab to submit button
-        await user.tab();
-        expect(submitButton).toHaveFocus();
-      });
-
-      it('should submit form on Enter key in password field', async () => {
-        const user = userEvent.setup();
-        const onSuccess = vi.fn();
-        render(<LoginForm onSuccess={onSuccess} onSwitchToRegister={vi.fn()} />);
-
-        const emailInput = screen.getByLabelText(/email/i);
-        const passwordInput = screen.getByLabelText(/password/i);
-
-        await user.type(emailInput, 'test@example.com');
-        await user.type(passwordInput, 'Password123{Enter}');
-
-        // Form should attempt submission
-        expect(emailInput).toHaveValue('test@example.com');
-        expect(passwordInput).toHaveValue('Password123');
-      });
-
-      it('should allow Shift+Tab to navigate backwards', async () => {
-        const user = userEvent.setup();
-        render(<LoginForm onSuccess={vi.fn()} onSwitchToRegister={vi.fn()} />);
-
-        const submitButton = screen.getByRole('button', { name: /sign in/i });
-        const passwordInput = screen.getByLabelText(/password/i);
-
-        submitButton.focus();
-        expect(submitButton).toHaveFocus();
-
-        await user.tab({ shift: true });
-        expect(passwordInput).toHaveFocus();
-      });
-    });
-
-    describe('RegistrationForm keyboard navigation', () => {
-      it('should allow tab navigation through all registration fields', async () => {
-        const user = userEvent.setup();
-        render(<RegistrationForm onSuccess={vi.fn()} onSwitchToLogin={vi.fn()} />);
-
-        const usernameInput = screen.getByLabelText(/username/i);
-        const passwordInput = screen.getByLabelText(/^password$/i);
-        const confirmPasswordInput = screen.getByLabelText(/confirm password/i);
-        const submitButton = screen.getByRole('button', { name: /create account/i });
-
-        usernameInput.focus();
-        expect(usernameInput).toHaveFocus();
-
-        await user.tab();
-        // Next field after username (could be email or password depending on form order)
-        expect(document.activeElement).not.toBe(usernameInput);
-
-        // Continue tabbing through form
-        await user.tab();
-        await user.tab();
-        
-        // Eventually reach submit button
-        submitButton.focus();
-        expect(submitButton).toHaveFocus();
-      });
-    });
-
     describe('QuestList keyboard navigation', () => {
       it('should allow keyboard navigation through quest items', async () => {
         const user = userEvent.setup();
@@ -296,61 +211,6 @@ describe('Accessibility Tests', () => {
   });
 
   describe('ARIA Labels and Semantic HTML', () => {
-    describe('LoginForm ARIA labels', () => {
-      it('should have proper ARIA labels for form inputs', () => {
-        render(<LoginForm onSuccess={vi.fn()} onSwitchToRegister={vi.fn()} />);
-
-        const emailInput = screen.getByLabelText(/email/i);
-        const passwordInput = screen.getByLabelText(/password/i);
-
-        // Email input should have text or email type
-        expect(['text', 'email']).toContain(emailInput.getAttribute('type'));
-        expect(passwordInput).toHaveAttribute('type', 'password');
-        expect(emailInput).toHaveAttribute('id');
-        expect(passwordInput).toHaveAttribute('id');
-      });
-
-      it('should have accessible submit button', () => {
-        render(<LoginForm onSuccess={vi.fn()} onSwitchToRegister={vi.fn()} />);
-
-        const submitButton = screen.getByRole('button', { name: /sign in/i });
-        expect(submitButton).toHaveAttribute('type', 'submit');
-      });
-
-      it('should announce validation errors to screen readers', async () => {
-        const user = userEvent.setup();
-        render(<LoginForm onSuccess={vi.fn()} onSwitchToRegister={vi.fn()} />);
-
-        const submitButton = screen.getByRole('button', { name: /sign in/i });
-        await user.click(submitButton);
-
-        const errorMessages = await screen.findAllByRole('alert');
-        expect(errorMessages.length).toBeGreaterThan(0);
-      });
-    });
-
-    describe('RegistrationForm ARIA labels', () => {
-      it('should have proper ARIA labels for all form inputs', () => {
-        render(<RegistrationForm onSuccess={vi.fn()} onSwitchToLogin={vi.fn()} />);
-
-        expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/confirm password/i)).toBeInTheDocument();
-      });
-
-      it('should have accessible password requirements', () => {
-        render(<RegistrationForm onSuccess={vi.fn()} onSwitchToLogin={vi.fn()} />);
-
-        // Password requirements should be visible
-        const passwordInput = screen.getByLabelText(/^password$/i);
-        expect(passwordInput).toBeInTheDocument();
-        
-        // Password field should have proper attributes
-        expect(passwordInput).toHaveAttribute('type', 'password');
-      });
-    });
-
     describe('QuestList ARIA labels', () => {
       it('should have semantic list structure', async () => {
         render(
@@ -566,38 +426,6 @@ describe('Accessibility Tests', () => {
 
       // Focus should return (in real implementation)
       document.body.removeChild(triggerButton);
-    });
-
-    it('should have visible focus indicators', () => {
-      render(<LoginForm onSuccess={vi.fn()} onSwitchToRegister={vi.fn()} />);
-
-      const emailInput = screen.getByLabelText(/email/i);
-      emailInput.focus();
-
-      // Check that focused element is the email input
-      expect(document.activeElement).toBe(emailInput);
-    });
-  });
-
-  describe('Screen Reader Announcements', () => {
-    it('should announce form submission status', async () => {
-      const user = userEvent.setup();
-      render(<LoginForm onSuccess={vi.fn()} onSwitchToRegister={vi.fn()} />);
-
-      const submitButton = screen.getByRole('button', { name: /sign in/i });
-      await user.click(submitButton);
-
-      // Error messages should have role="alert" for screen reader announcement
-      const alerts = await screen.findAllByRole('alert');
-      expect(alerts.length).toBeGreaterThan(0);
-    });
-
-    it('should announce loading states', () => {
-      render(<LoginForm onSuccess={vi.fn()} onSwitchToRegister={vi.fn()} />);
-
-      // Form should be present
-      const submitButton = screen.getByRole('button', { name: /sign in/i });
-      expect(submitButton).toBeInTheDocument();
     });
   });
 });

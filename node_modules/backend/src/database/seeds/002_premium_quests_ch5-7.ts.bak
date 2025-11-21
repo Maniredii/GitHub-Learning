@@ -1,0 +1,563 @@
+import { Knex } from 'knex';
+
+export async function seed(knex: Knex): Promise<void> {
+  // This seed adds premium quest content for Chapters 5-7
+  // Run after 001_chapters_and_quests.ts
+
+  const premiumQuests = [
+    // ============================================================================
+    // CHAPTER 5: REWINDING TIME (undoing changes)
+    // ============================================================================
+    {
+      id: '10000000-0000-0000-0000-000000000019',
+      chapter_id: '00000000-0000-0000-0000-000000000006',
+      title: 'The Temporal Nexus',
+      narrative:
+        'You step through a shimmering portal into the Temporal Nexus, where time flows in all directions. "Welcome to the premium realm," the voice echoes with new power. "Here you will learn to undo mistakes, rewrite history, and master the flow of time itself."',
+      objective: 'Learn about undoing changes in Git.',
+      hints: JSON.stringify([
+        'git reset moves the HEAD pointer',
+        'git checkout can restore files',
+        'git revert creates new commits that undo changes',
+      ]),
+      xp_reward: 200,
+      order: 1,
+      validation_criteria: JSON.stringify({
+        type: 'custom',
+        parameters: { requiresManualCompletion: true },
+      }),
+    },
+    {
+      id: '10000000-0000-0000-0000-000000000020',
+      chapter_id: '00000000-0000-0000-0000-000000000006',
+      title: 'Unstaging the Staged',
+      narrative:
+        'You see files trapped in the staging area. "Sometimes," the voice explains, "you stage a file by mistake. Use git reset HEAD <file> to unstage it, returning it to the working directory without losing your changes."',
+      objective: 'Unstage a file using git reset HEAD.',
+      hints: JSON.stringify([
+        'The file config.js is currently staged',
+        'Use git reset HEAD config.js',
+        'The file will remain modified but unstaged',
+      ]),
+      xp_reward: 250,
+      order: 2,
+      validation_criteria: JSON.stringify({
+        type: 'custom',
+        parameters: { checkStagingArea: true, fileNotStaged: 'config.js' },
+      }),
+      initial_repository_state: JSON.stringify({
+        id: 'repo-chapter5-quest-2',
+        workingDirectory: {
+          'config.js': { content: 'module.exports = { debug: true };', modified: false },
+        },
+        stagingArea: {
+          'config.js': { content: 'module.exports = { debug: true };', modified: false },
+        },
+        commits: [
+          {
+            hash: 'pqr678',
+            message: 'Initial commit',
+            author: 'Chrono-Coder',
+            timestamp: '2024-01-01T10:00:00Z',
+            parent: null,
+            tree: {},
+          },
+        ],
+        branches: [{ name: 'main', commitHash: 'pqr678' }],
+        head: 'main',
+        remotes: [],
+      }),
+    },
+    {
+      id: '10000000-0000-0000-0000-000000000021',
+      chapter_id: '00000000-0000-0000-0000-000000000006',
+      title: 'Discarding Changes',
+      narrative:
+        'A file flickers with unstable changes. "When you want to discard changes completely," the voice warns, "use git checkout -- <file>. This is permanent - the changes will be lost forever."',
+      objective: 'Discard working directory changes using git checkout.',
+      hints: JSON.stringify([
+        'Use git checkout -- <filename> to discard changes',
+        'This restores the file to the last committed state',
+        'Be careful - this cannot be undone!',
+      ]),
+      xp_reward: 250,
+      order: 3,
+      validation_criteria: JSON.stringify({
+        type: 'file_content',
+        parameters: { filePath: 'temp.js', matchesCommitted: true },
+      }),
+      initial_repository_state: JSON.stringify({
+        id: 'repo-chapter5-quest-3',
+        workingDirectory: {
+          'temp.js': { content: 'console.log("bad changes");', modified: true },
+        },
+        stagingArea: {},
+        commits: [
+          {
+            hash: 'stu901',
+            message: 'Add temp.js',
+            author: 'Chrono-Coder',
+            timestamp: '2024-01-01T10:00:00Z',
+            parent: null,
+            tree: {
+              'temp.js': { content: 'console.log("original");', modified: false },
+            },
+          },
+        ],
+        branches: [{ name: 'main', commitHash: 'stu901' }],
+        head: 'main',
+        remotes: [],
+      }),
+    },
+    {
+      id: '10000000-0000-0000-0000-000000000022',
+      chapter_id: '00000000-0000-0000-0000-000000000006',
+      title: 'The Soft Reset',
+      narrative:
+        'Time swirls around you as the voice teaches: "git reset --soft moves HEAD to a previous commit, but keeps your changes staged. Use this to recommit with a better message or combine commits."',
+      objective: 'Perform a soft reset to the previous commit.',
+      hints: JSON.stringify([
+        'Use git reset --soft HEAD~1',
+        'HEAD~1 means "one commit before HEAD"',
+        'Your changes will remain staged',
+      ]),
+      xp_reward: 300,
+      order: 4,
+      validation_criteria: JSON.stringify({
+        type: 'custom',
+        parameters: { checkCommitCount: 1, checkStagingNotEmpty: true },
+      }),
+      initial_repository_state: JSON.stringify({
+        id: 'repo-chapter5-quest-4',
+        workingDirectory: {
+          'feature.js': { content: 'function feature() { return true; }', modified: false },
+        },
+        stagingArea: {},
+        commits: [
+          {
+            hash: 'vwx234',
+            message: 'Initial commit',
+            author: 'Chrono-Coder',
+            timestamp: '2024-01-01T10:00:00Z',
+            parent: null,
+            tree: {},
+          },
+          {
+            hash: 'yza567',
+            message: 'Bad commit message',
+            author: 'Chrono-Coder',
+            timestamp: '2024-01-01T11:00:00Z',
+            parent: 'vwx234',
+            tree: {
+              'feature.js': { content: 'function feature() { return true; }', modified: false },
+            },
+          },
+        ],
+        branches: [{ name: 'main', commitHash: 'yza567' }],
+        head: 'main',
+        remotes: [],
+      }),
+    },
+    {
+      id: '10000000-0000-0000-0000-000000000023',
+      chapter_id: '00000000-0000-0000-0000-000000000006',
+      title: 'The Hard Reset',
+      narrative:
+        'The Temporal Nexus darkens. "The most powerful and dangerous spell," the voice warns, "is git reset --hard. It moves HEAD and destroys all changes. Use it only when you are certain."',
+      objective: 'Perform a hard reset to discard commits and changes.',
+      hints: JSON.stringify([
+        'Use git reset --hard HEAD~1',
+        'This will delete the last commit and all changes',
+        'In real projects, be very careful with this command!',
+      ]),
+      xp_reward: 300,
+      order: 5,
+      validation_criteria: JSON.stringify({
+        type: 'custom',
+        parameters: { checkCommitCount: 1, checkWorkingDirectoryClean: true },
+      }),
+      initial_repository_state: JSON.stringify({
+        id: 'repo-chapter5-quest-5',
+        workingDirectory: {
+          'mistake.js': { content: 'This is a mistake', modified: true },
+        },
+        stagingArea: {},
+        commits: [
+          {
+            hash: 'bcd890',
+            message: 'Good commit',
+            author: 'Chrono-Coder',
+            timestamp: '2024-01-01T10:00:00Z',
+            parent: null,
+            tree: {
+              'app.js': { content: 'console.log("app");', modified: false },
+            },
+          },
+          {
+            hash: 'efg123',
+            message: 'Bad commit',
+            author: 'Chrono-Coder',
+            timestamp: '2024-01-01T11:00:00Z',
+            parent: 'bcd890',
+            tree: {
+              'app.js': { content: 'console.log("app");', modified: false },
+              'mistake.js': { content: 'This is a mistake', modified: false },
+            },
+          },
+        ],
+        branches: [{ name: 'main', commitHash: 'efg123' }],
+        head: 'main',
+        remotes: [],
+      }),
+    },
+
+    // ============================================================================
+    // CHAPTER 6: THE GREAT LIBRARY (remotes)
+    // ============================================================================
+    {
+      id: '10000000-0000-0000-0000-000000000024',
+      chapter_id: '00000000-0000-0000-0000-000000000007',
+      title: 'The Great Library Entrance',
+      narrative:
+        'You emerge into a vast library that stretches infinitely in all directions. "This is the Great Library," the voice announces, "where all code is shared across time and space. Here you will learn to collaborate with other Chrono-Coders through remote repositories."',
+      objective: 'Learn about remote repositories and collaboration.',
+      hints: JSON.stringify([
+        'Remote repositories are hosted on servers like GitHub',
+        'They allow teams to share and collaborate on code',
+        'Common operations: clone, push, pull, fetch',
+      ]),
+      xp_reward: 200,
+      order: 1,
+      validation_criteria: JSON.stringify({
+        type: 'custom',
+        parameters: { requiresManualCompletion: true },
+      }),
+    },
+    {
+      id: '10000000-0000-0000-0000-000000000025',
+      chapter_id: '00000000-0000-0000-0000-000000000007',
+      title: 'Adding a Remote',
+      narrative:
+        'A librarian appears, holding a glowing key. "To connect to a remote repository," they explain, "you must first register it with git remote add. The name \'origin\' is traditional for the main remote."',
+      objective: 'Add a remote repository named origin.',
+      hints: JSON.stringify([
+        'Use git remote add origin <url>',
+        'The URL can be https:// or git@',
+        'Use git remote -v to verify',
+      ]),
+      xp_reward: 250,
+      order: 2,
+      validation_criteria: JSON.stringify({
+        type: 'custom',
+        parameters: { checkRemoteExists: 'origin' },
+      }),
+      initial_repository_state: JSON.stringify({
+        id: 'repo-chapter6-quest-2',
+        workingDirectory: {
+          'README.md': { content: '# My Project', modified: false },
+        },
+        stagingArea: {},
+        commits: [
+          {
+            hash: 'hij456',
+            message: 'Initial commit',
+            author: 'Chrono-Coder',
+            timestamp: '2024-01-01T10:00:00Z',
+            parent: null,
+            tree: {
+              'README.md': { content: '# My Project', modified: false },
+            },
+          },
+        ],
+        branches: [{ name: 'main', commitHash: 'hij456' }],
+        head: 'main',
+        remotes: [],
+      }),
+    },
+    {
+      id: '10000000-0000-0000-0000-000000000026',
+      chapter_id: '00000000-0000-0000-0000-000000000007',
+      title: 'Cloning a Repository',
+      narrative:
+        'The librarian gestures to a glowing tome. "When you want to work on an existing project," they say, "use git clone. This creates a complete copy of the remote repository on your machine, including all history."',
+      objective: 'Clone a remote repository.',
+      hints: JSON.stringify([
+        'Use git clone <url>',
+        'This creates a new directory with the repository name',
+        'The remote is automatically named origin',
+      ]),
+      xp_reward: 250,
+      order: 3,
+      validation_criteria: JSON.stringify({
+        type: 'custom',
+        parameters: { checkRepositoryCloned: true },
+      }),
+      initial_repository_state: JSON.stringify({
+        id: 'repo-chapter6-quest-3',
+        workingDirectory: {},
+        stagingArea: {},
+        commits: [],
+        branches: [],
+        head: '',
+        remotes: [],
+      }),
+    },
+    {
+      id: '10000000-0000-0000-0000-000000000027',
+      chapter_id: '00000000-0000-0000-0000-000000000007',
+      title: 'Pushing to the Library',
+      narrative:
+        'Your local commits glow with potential. "To share your work with others," the librarian instructs, "use git push. This uploads your commits to the remote repository, making them available to all."',
+      objective: 'Push your commits to the remote repository.',
+      hints: JSON.stringify([
+        'Use git push origin main',
+        'origin is the remote name, main is the branch',
+        'You may need to set upstream with -u flag',
+      ]),
+      xp_reward: 300,
+      order: 4,
+      validation_criteria: JSON.stringify({
+        type: 'custom',
+        parameters: { checkRemoteHasCommits: true },
+      }),
+      initial_repository_state: JSON.stringify({
+        id: 'repo-chapter6-quest-4',
+        workingDirectory: {
+          'feature.js': { content: 'function feature() {}', modified: false },
+        },
+        stagingArea: {},
+        commits: [
+          {
+            hash: 'klm789',
+            message: 'Add feature',
+            author: 'Chrono-Coder',
+            timestamp: '2024-01-01T10:00:00Z',
+            parent: null,
+            tree: {
+              'feature.js': { content: 'function feature() {}', modified: false },
+            },
+          },
+        ],
+        branches: [{ name: 'main', commitHash: 'klm789' }],
+        head: 'main',
+        remotes: [
+          {
+            name: 'origin',
+            url: 'https://github.com/example/repo.git',
+            branches: [],
+          },
+        ],
+      }),
+    },
+    {
+      id: '10000000-0000-0000-0000-000000000028',
+      chapter_id: '00000000-0000-0000-0000-000000000007',
+      title: 'Pulling from the Library',
+      narrative:
+        'The library shimmers as new knowledge appears. "Other Chrono-Coders have added to the project," the librarian announces. "Use git pull to download and merge their changes into your local repository."',
+      objective: 'Pull changes from the remote repository.',
+      hints: JSON.stringify([
+        'Use git pull origin main',
+        'This fetches changes and merges them',
+        'Equivalent to git fetch + git merge',
+      ]),
+      xp_reward: 300,
+      order: 5,
+      validation_criteria: JSON.stringify({
+        type: 'custom',
+        parameters: { checkPulledChanges: true },
+      }),
+      initial_repository_state: JSON.stringify({
+        id: 'repo-chapter6-quest-5',
+        workingDirectory: {
+          'app.js': { content: 'console.log("v1");', modified: false },
+        },
+        stagingArea: {},
+        commits: [
+          {
+            hash: 'nop012',
+            message: 'Initial version',
+            author: 'Chrono-Coder',
+            timestamp: '2024-01-01T10:00:00Z',
+            parent: null,
+            tree: {
+              'app.js': { content: 'console.log("v1");', modified: false },
+            },
+          },
+        ],
+        branches: [{ name: 'main', commitHash: 'nop012' }],
+        head: 'main',
+        remotes: [
+          {
+            name: 'origin',
+            url: 'https://github.com/example/repo.git',
+            branches: [
+              {
+                name: 'main',
+                commitHash: 'qrs345',
+              },
+            ],
+          },
+        ],
+      }),
+    },
+    {
+      id: '10000000-0000-0000-0000-000000000029',
+      chapter_id: '00000000-0000-0000-0000-000000000007',
+      title: 'Fetching Without Merging',
+      narrative:
+        'The librarian shows you a safer path. "Sometimes you want to see remote changes without merging them immediately. Use git fetch to download changes, then inspect them before merging."',
+      objective: 'Fetch changes from remote without merging.',
+      hints: JSON.stringify([
+        'Use git fetch origin',
+        'This downloads changes but doesn\'t merge',
+        'Use git log origin/main to see remote commits',
+      ]),
+      xp_reward: 250,
+      order: 6,
+      validation_criteria: JSON.stringify({
+        type: 'custom',
+        parameters: { checkFetchedChanges: true },
+      }),
+      initial_repository_state: JSON.stringify({
+        id: 'repo-chapter6-quest-6',
+        workingDirectory: {
+          'README.md': { content: '# Project', modified: false },
+        },
+        stagingArea: {},
+        commits: [
+          {
+            hash: 'tuv678',
+            message: 'Local commit',
+            author: 'Chrono-Coder',
+            timestamp: '2024-01-01T10:00:00Z',
+            parent: null,
+            tree: {
+              'README.md': { content: '# Project', modified: false },
+            },
+          },
+        ],
+        branches: [{ name: 'main', commitHash: 'tuv678' }],
+        head: 'main',
+        remotes: [
+          {
+            name: 'origin',
+            url: 'https://github.com/example/repo.git',
+            branches: [
+              {
+                name: 'main',
+                commitHash: 'wxy901',
+              },
+            ],
+          },
+        ],
+      }),
+    },
+
+    // ============================================================================
+    // CHAPTER 7: THE PARALLEL TIMELINES (branching)
+    // ============================================================================
+    {
+      id: '10000000-0000-0000-0000-000000000030',
+      chapter_id: '00000000-0000-0000-0000-000000000008',
+      title: 'The Branching Forests',
+      narrative:
+        'You enter a mystical forest where paths split and converge in impossible ways. "Welcome to the Branching Forests," the voice echoes. "Here you will learn to create parallel timelines, work on multiple features simultaneously, and merge realities together."',
+      objective: 'Learn about Git branches and their purpose.',
+      hints: JSON.stringify([
+        'Branches let you work on features without affecting main code',
+        'Each branch is an independent line of development',
+        'Branches are lightweight and fast in Git',
+      ]),
+      xp_reward: 200,
+      order: 1,
+      validation_criteria: JSON.stringify({
+        type: 'custom',
+        parameters: { requiresManualCompletion: true },
+      }),
+    },
+    {
+      id: '10000000-0000-0000-0000-000000000031',
+      chapter_id: '00000000-0000-0000-0000-000000000008',
+      title: 'Creating Your First Branch',
+      narrative:
+        'A path splits before you. "To create a new timeline," the voice instructs, "use git branch <name>. This creates a new branch pointing to your current commit, but doesn\'t switch to it yet."',
+      objective: 'Create a new branch named feature.',
+      hints: JSON.stringify([
+        'Use git branch feature',
+        'Use git branch to list all branches',
+        'The * shows which branch you\'re currently on',
+      ]),
+      xp_reward: 250,
+      order: 2,
+      validation_criteria: JSON.stringify({
+        type: 'branch_exists',
+        parameters: { branchName: 'feature' },
+      }),
+      initial_repository_state: JSON.stringify({
+        id: 'repo-chapter7-quest-2',
+        workingDirectory: {
+          'app.js': { content: 'console.log("main");', modified: false },
+        },
+        stagingArea: {},
+        commits: [
+          {
+            hash: 'zab234',
+            message: 'Initial commit',
+            author: 'Chrono-Coder',
+            timestamp: '2024-01-01T10:00:00Z',
+            parent: null,
+            tree: {
+              'app.js': { content: 'console.log("main");', modified: false },
+            },
+          },
+        ],
+        branches: [{ name: 'main', commitHash: 'zab234' }],
+        head: 'main',
+        remotes: [],
+      }),
+    },
+    {
+      id: '10000000-0000-0000-0000-000000000032',
+      chapter_id: '00000000-0000-0000-0000-000000000008',
+      title: 'Switching Timelines',
+      narrative:
+        'You stand at the fork in the path. "To walk a different timeline," the voice explains, "use git checkout <branch>. This switches your working directory to that branch\'s state."',
+      objective: 'Switch to the feature branch.',
+      hints: JSON.stringify([
+        'Use git checkout feature',
+        'Your working directory will update to match the branch',
+        'Use git checkout -b <name> to create and switch in one command',
+      ]),
+      xp_reward: 250,
+      order: 3,
+      validation_criteria: JSON.stringify({
+        type: 'custom',
+        parameters: { checkCurrentBranch: 'feature' },
+      }),
+      initial_repository_state: JSON.stringify({
+        id: 'repo-chapter7-quest-3',
+        workingDirectory: {
+          'app.js': { content: 'console.log("main");', modified: false },
+        },
+        stagingArea: {},
+        commits: [
+          {
+            hash: 'cde567',
+            message: 'Initial commit',
+            author: 'Chrono-Coder',
+            timestamp: '2024-01-01T10:00:00Z',
+            parent: null,
+            tree: {
+              'app.js': { content: 'console.log("main");', modified: false },
+            },
+          },
+        ],
+        branches: [
+          { name: 'main', commitHash: 'cde567' },
+          { name: 'feature', commitHash: 'cde567' },
+        ],
+        head: 'main',
+        remotes: [],
+      }),
+    },
