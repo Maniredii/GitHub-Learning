@@ -11,6 +11,8 @@ import achievementRoutes from './routes/achievementRoutes';
 import bossBattleRoutes from './routes/bossBattleRoutes';
 import hintRoutes from './routes/hintRoutes';
 import userRoutes from './routes/userRoutes';
+import premiumRoutes from './routes/premiumRoutes';
+import paymentRoutes from './routes/paymentRoutes';
 
 dotenv.config();
 
@@ -74,6 +76,12 @@ app.use('/api/hints', hintRoutes);
 
 // User routes
 app.use('/api/users', userRoutes);
+
+// Premium routes
+app.use('/api/premium', premiumRoutes);
+
+// Payment routes (webhook needs raw body, handled in route)
+app.use('/api/payment', paymentRoutes);
 
 // Start server
 app.listen(PORT, () => {

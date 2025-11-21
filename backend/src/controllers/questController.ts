@@ -49,6 +49,8 @@ export class QuestController {
   async getQuestById(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
+      const userId = (req as any).user?.userId;
+
       const quest = await questService.getQuestById(id);
 
       if (!quest) {
@@ -60,6 +62,23 @@ export class QuestController {
           },
         });
         return;
+      }
+
+      // Check if user can access this quest
+      if (userId) {
+        const accessCheck = await questService.canAccessQuest(userId, id);
+        if (!accessCheck.canAccess) {
+          res.status(403).json({
+            success: false,
+            error: {
+              code: accessCheck.reason === 'premium_required' ? 'PREMIUM_REQUIRED' : 'ACCESS_DENIED',
+              message: accessCheck.reason === 'premium_required' 
+                ? 'This quest requires premium access' 
+                : 'You do not have access to this quest',
+            },
+          });
+          return;
+        }
       }
 
       res.json({
@@ -97,6 +116,42 @@ export class QuestController {
         error: {
           code: 'FETCH_CHAPTERS_ERROR',
           message: 'Failed to fetch chapters',
+        },
+      });
+    }
+  }
+
+  /**
+   * GET /api/chapters/:id
+   * Get a specific chapter by ID
+   */
+  async getChapterById(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const chapter = await questService.getChapterById(id);
+
+      if (!chapter) {
+        res.status(404).json({
+          success: false,
+          error: {
+            code: 'CHAPTER_NOT_FOUND',
+            message: 'Chapter not found',
+          },
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        data: chapter,
+      });
+    } catch (error) {
+      console.error('Error fetching chapter:', error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'FETCH_CHAPTER_ERROR',
+          message: 'Failed to fetch chapter',
         },
       });
     }

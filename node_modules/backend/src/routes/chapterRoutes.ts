@@ -10,6 +10,12 @@ const router = Router();
 router.get('/', questController.getAllChapters.bind(questController));
 
 /**
+ * GET /api/chapters/:id
+ * Get a specific chapter by ID
+ */
+router.get('/:id', questController.getChapterById.bind(questController));
+
+/**
  * GET /api/chapters/:id/quests
  * Get all quests for a specific chapter
  */

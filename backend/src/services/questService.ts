@@ -130,7 +130,7 @@ export class QuestService {
   /**
    * Get quest with lock status for a specific user
    */
-  async getQuestsWithLockStatus(userId: string): Promise<Array<Quest & { isLocked: boolean }>> {
+  async getQuestsWithLockStatus(userId: string): Promise<Array<Quest & { isLocked: boolean; isPremiumLocked: boolean }>> {
     const quests = await this.getAllQuests();
     const userProgress = await db('user_progress').where('user_id', userId).first();
     const completedQuests = await db('quest_completions')
@@ -141,15 +141,76 @@ export class QuestService {
 
     return quests.map((quest: Quest) => {
       const chapter = chapterMap.get(quest.chapter_id);
-      const isLocked = chapter
+      const isProgressLocked = chapter
         ? !this.isChapterUnlocked(chapter, userProgress, completedQuests, chapters)
         : true;
+      
+      // Check if chapter requires premium and user doesn't have it
+      const isPremiumLocked = chapter?.is_premium && !this.hasActivePremium(userProgress);
 
       return {
         ...quest,
-        isLocked,
+        isLocked: isProgressLocked || isPremiumLocked,
+        isPremiumLocked,
       };
     });
+  }
+
+  /**
+   * Check if user has active premium access
+   */
+  private hasActivePremium(userProgress: any): boolean {
+    if (!userProgress || !userProgress.is_premium) {
+      return false;
+    }
+
+    // If subscription_type is 'one_time', premium never expires
+    if (userProgress.subscription_type === 'one_time') {
+      return true;
+    }
+
+    // For monthly subscriptions, check expiration date
+    if (userProgress.subscription_type === 'monthly' && userProgress.premium_expires_at) {
+      const expirationDate = new Date(userProgress.premium_expires_at);
+      return expirationDate > new Date();
+    }
+
+    return false;
+  }
+
+  /**
+   * Check if user can access a specific quest
+   */
+  async canAccessQuest(userId: string, questId: string): Promise<{ canAccess: boolean; reason?: string }> {
+    const quest = await this.getQuestById(questId);
+    if (!quest) {
+      return { canAccess: false, reason: 'Quest not found' };
+    }
+
+    const chapter = await this.getChapterById(quest.chapter_id);
+    if (!chapter) {
+      return { canAccess: false, reason: 'Chapter not found' };
+    }
+
+    const userProgress = await db('user_progress').where('user_id', userId).first();
+    
+    // Check if chapter requires premium
+    if (chapter.is_premium && !this.hasActivePremium(userProgress)) {
+      return { canAccess: false, reason: 'premium_required' };
+    }
+
+    // Check if chapter is unlocked based on progress
+    const completedQuests = await db('quest_completions')
+      .where('user_id', userId)
+      .pluck('quest_id');
+    const chapters = await db('chapters').select('*');
+    
+    const isUnlocked = this.isChapterUnlocked(chapter, userProgress, completedQuests, chapters);
+    if (!isUnlocked) {
+      return { canAccess: false, reason: 'progress_locked' };
+    }
+
+    return { canAccess: true };
   }
 }
 

@@ -1,3 +1,5 @@
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { ProfileView } from '../components/ProfileView';
 
 /**
@@ -7,15 +9,17 @@ import { ProfileView } from '../components/ProfileView';
  * into a real application with routing and authentication.
  */
 
-interface ProfilePageProps {
-  token: string;
-  onNavigateBack?: () => void;
-}
+export function ProfilePage() {
+  const navigate = useNavigate();
+  const { token } = useAuth();
 
-export function ProfilePage({ token, onNavigateBack }: ProfilePageProps) {
+  if (!token) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div className="profile-page-container">
-      <ProfileView token={token} onNavigateBack={onNavigateBack} />
+      <ProfileView token={token} onNavigateBack={() => navigate('/dashboard')} />
     </div>
   );
 }

@@ -111,4 +111,23 @@ export const questApi = {
     const result = await response.json();
     return result.data;
   },
+
+  async getChapterById(chapterId: string): Promise<Chapter> {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/chapters/${chapterId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || 'Failed to fetch chapter');
+    }
+
+    const result = await response.json();
+    return result.data;
+  },
 };

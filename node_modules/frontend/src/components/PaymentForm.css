@@ -1,0 +1,124 @@
+.payment-form {
+  background-color: rgba(15, 52, 96, 0.2);
+  border: 2px solid #0f3460;
+  border-radius: 12px;
+  padding: 32px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.payment-form-header {
+  text-align: center;
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #0f3460;
+}
+
+.payment-form-header h3 {
+  color: #ccd6f6;
+  font-size: 24px;
+  margin-bottom: 12px;
+}
+
+.payment-form-price {
+  color: #64ffda;
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.payment-form-error {
+  background-color: rgba(233, 69, 96, 0.1);
+  border: 1px solid #e94560;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  color: #ff5577;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.payment-form-error-icon {
+  font-size: 20px;
+}
+
+.payment-form-info {
+  margin-bottom: 24px;
+}
+
+.payment-form-info p {
+  color: #a8b2d1;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.payment-form-card {
+  margin-bottom: 24px;
+  padding: 20px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid #0f3460;
+  border-radius: 8px;
+}
+
+#card-element {
+  min-height: 40px;
+}
+
+.payment-form-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.payment-form-button {
+  flex: 1;
+  padding: 14px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.payment-form-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.payment-form-button.cancel {
+  background-color: transparent;
+  color: #a8b2d1;
+  border: 2px solid #0f3460;
+}
+
+.payment-form-button.cancel:hover:not(:disabled) {
+  background-color: rgba(15, 52, 96, 0.3);
+  border-color: #64ffda;
+  color: #64ffda;
+}
+
+.payment-form-button.primary {
+  background-color: #e94560;
+  color: white;
+}
+
+.payment-form-button.primary:hover:not(:disabled) {
+  background-color: #ff5577;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(233, 69, 96, 0.4);
+}
+
+.payment-form-footer {
+  text-align: center;
+  padding-top: 20px;
+  border-top: 1px solid #0f3460;
+}
+
+.payment-form-footer p {
+  color: #a8b2d1;
+  font-size: 13px;
+  margin: 0;
+}
