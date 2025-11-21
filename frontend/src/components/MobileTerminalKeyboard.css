@@ -1,0 +1,123 @@
+.mobile-keyboard {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+  border-top: 2px solid #00ff41;
+  padding: 12px;
+  z-index: 1000;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.mobile-keyboard__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.mobile-keyboard__title {
+  color: #00ff41;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Fira Code', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mobile-keyboard__commands {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.mobile-keyboard__command-btn {
+  background: rgba(0, 255, 65, 0.1);
+  border: 1px solid #00ff41;
+  color: #00ff41;
+  padding: 10px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Fira Code', monospace;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-keyboard__command-btn:active {
+  background: rgba(0, 255, 65, 0.3);
+  transform: scale(0.95);
+}
+
+.mobile-keyboard__special-keys {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mobile-keyboard__key {
+  background: rgba(107, 207, 255, 0.1);
+  border: 1px solid #6bcfff;
+  color: #6bcfff;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Fira Code', monospace;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex: 1;
+  min-width: 60px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-keyboard__key--wide {
+  flex: 2;
+}
+
+.mobile-keyboard__key:active {
+  background: rgba(107, 207, 255, 0.3);
+  transform: scale(0.95);
+}
+
+/* Tablet adjustments */
+@media (min-width: 768px) {
+  .mobile-keyboard {
+    display: none;
+  }
+}
+
+/* Small mobile devices */
+@media (max-width: 360px) {
+  .mobile-keyboard__commands {
+    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+    gap: 6px;
+  }
+
+  .mobile-keyboard__command-btn {
+    padding: 8px 6px;
+    font-size: 11px;
+  }
+
+  .mobile-keyboard__key {
+    padding: 8px 12px;
+    font-size: 12px;
+    min-width: 50px;
+  }
+}

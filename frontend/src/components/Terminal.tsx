@@ -4,6 +4,7 @@ import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import './Terminal.css';
 import { gitApi } from '../services/gitApi';
+import { MobileTerminalKeyboard } from './MobileTerminalKeyboard';
 
 interface TerminalProps {
   repositoryId: string;
@@ -26,16 +27,31 @@ export const Terminal: React.FC<TerminalProps> = ({
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const historyIndexRef = useRef(-1);
   const [isExecuting, setIsExecuting] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [showMobileKeyboard, setShowMobileKeyboard] = useState(false);
 
   const PROMPT = '\x1b[1;32m$\x1b[0m ';
+
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     if (!terminalRef.current || xtermRef.current) return;
 
-    // Initialize xterm.js
+    // Initialize xterm.js with responsive font size
+    const isMobileDevice = window.innerWidth < 768;
     const term = new XTerm({
       cursorBlink: true,
-      fontSize: 14,
+      fontSize: isMobileDevice ? 12 : 14,
       fontFamily: '"Fira Code", "Courier New", monospace',
       theme: {
         background: '#1a1a2e',
@@ -60,8 +76,8 @@ export const Terminal: React.FC<TerminalProps> = ({
         brightCyan: '#88ffff',
         brightWhite: '#ffffff',
       },
-      cols: 80,
-      rows: 24,
+      cols: isMobileDevice ? 40 : 80,
+      rows: isMobileDevice ? 16 : 24,
     });
 
     const fitAddon = new FitAddon();
@@ -313,17 +329,100 @@ export const Terminal: React.FC<TerminalProps> = ({
     }
   };
 
+  const handleMobileCommandInsert = (command: string) => {
+    const term = xtermRef.current;
+    if (!term) return;
+
+    // Clear current line
+    const currentLength = currentLineRef.current.length;
+    for (let i = 0; i < currentLength; i++) {
+      term.write('\b \b');
+    }
+
+    // Insert command
+    currentLineRef.current = command;
+    term.write(command);
+  };
+
+  const handleMobileKeyPress = (key: string) => {
+    const term = xtermRef.current;
+    if (!term) return;
+
+    switch (key) {
+      case 'Enter':
+        const command = currentLineRef.current.trim();
+        term.writeln('');
+        if (command) {
+          executeCommand(command);
+        } else {
+          term.write(PROMPT);
+        }
+        currentLineRef.current = '';
+        historyIndexRef.current = -1;
+        break;
+
+      case 'Backspace':
+        if (currentLineRef.current.length > 0) {
+          currentLineRef.current = currentLineRef.current.slice(0, -1);
+          term.write('\b \b');
+        }
+        break;
+
+      case 'Tab':
+        handleTabCompletion();
+        break;
+
+      case 'ArrowUp':
+        handleHistoryNavigation('up');
+        break;
+
+      case 'ArrowDown':
+        handleHistoryNavigation('down');
+        break;
+    }
+  };
+
+  const toggleMobileKeyboard = () => {
+    setShowMobileKeyboard(!showMobileKeyboard);
+  };
+
   return (
-    <div className="terminal-container">
+    <div className="terminal-container" role="region" aria-label="Git command terminal">
       <div className="terminal-header">
-        <div className="terminal-buttons">
+        <div className="terminal-buttons" aria-hidden="true">
           <span className="terminal-button close"></span>
           <span className="terminal-button minimize"></span>
           <span className="terminal-button maximize"></span>
         </div>
-        <div className="terminal-title">Spellbook Terminal - Repository: {repositoryId}</div>
+        <div className="terminal-title" id="terminal-title">Spellbook Terminal - Repository: {repositoryId}</div>
+        {isMobile && (
+          <button
+            className="terminal-keyboard-toggle"
+            onClick={toggleMobileKeyboard}
+            aria-label={showMobileKeyboard ? "Hide mobile keyboard" : "Show mobile keyboard"}
+            aria-expanded={showMobileKeyboard}
+            aria-controls="mobile-keyboard"
+          >
+            ⌨️
+          </button>
+        )}
       </div>
-      <div ref={terminalRef} className="terminal-content" />
+      <div 
+        ref={terminalRef} 
+        className="terminal-content"
+        role="log"
+        aria-live="polite"
+        aria-atomic="false"
+        aria-labelledby="terminal-title"
+      />
+      
+      {isMobile && (
+        <MobileTerminalKeyboard
+          visible={showMobileKeyboard}
+          onCommandInsert={handleMobileCommandInsert}
+          onKeyPress={handleMobileKeyPress}
+        />
+      )}
     </div>
   );
 };

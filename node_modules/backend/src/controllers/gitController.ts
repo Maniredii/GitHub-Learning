@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { GitEngine } from '../git-engine/GitEngine';
 import { CommandExecutor } from '../git-engine/CommandExecutor';
 import { Repository } from '../git-engine/models/Repository';
+import analyticsService from '../services/analyticsService';
 
 /**
  * In-memory storage for user repositories (session-based)
@@ -27,7 +28,8 @@ function getUserRepository(repositoryId: string): Repository {
  */
 export const executeCommand = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { repositoryId, command } = req.body;
+    const { repositoryId, command, questId } = req.body;
+    const userId = (req as any).user?.userId;
 
     // Validate input
     if (!repositoryId) {
@@ -59,6 +61,17 @@ export const executeCommand = async (req: Request, res: Response): Promise<void>
     // Execute the command
     const executor = new CommandExecutor();
     const result = executor.execute(gitEngine, command);
+
+    // Log command execution analytics if user is authenticated
+    if (userId && questId) {
+      await analyticsService.logCommandExecution(
+        userId,
+        questId,
+        command,
+        result.success,
+        result.error
+      );
+    }
 
     // Get updated repository state
     const newState = gitEngine.getRepository().toJSON();
@@ -303,6 +316,50 @@ export const updateFile = async (req: Request, res: Response): Promise<void> => 
         code: 'INTERNAL_ERROR',
         message: 'An error occurred while updating the file',
         details: error.message,
+      },
+    });
+  }
+};
+
+/**
+ * GET /api/git/performance/:id
+ * Get performance metrics for a repository's Git engine
+ */
+export const getPerformanceMetrics = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    // Get the repository
+    const repository = getUserRepository(id);
+    if (!repository) {
+      res.status(404).json({
+        error: {
+          code: 'REPOSITORY_NOT_FOUND',
+          message: 'Repository not found',
+        },
+      });
+      return;
+    }
+
+    // Create Git engine instance
+    const gitEngine = new GitEngine(repository);
+
+    // Get performance metrics
+    const metrics = gitEngine.getPerformanceMetrics();
+
+    res.json({
+      success: true,
+      data: {
+        metrics,
+        repositoryId: id,
+      },
+    });
+  } catch (error) {
+    console.error('Error getting performance metrics:', error);
+    res.status(500).json({
+      error: {
+        code: 'PERFORMANCE_METRICS_ERROR',
+        message: 'Failed to retrieve performance metrics',
       },
     });
   }

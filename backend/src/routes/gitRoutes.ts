@@ -6,6 +6,7 @@ import {
   updateRepository,
   deleteRepository,
   updateFile,
+  getPerformanceMetrics,
 } from '../controllers/gitController';
 
 const router = Router();
@@ -45,5 +46,11 @@ router.delete('/repository/:id', deleteRepository);
  * Update a file in the repository's working directory
  */
 router.put('/repository/:id/file', updateFile);
+
+/**
+ * GET /api/git/performance/:id
+ * Get performance metrics for a repository's Git engine
+ */
+router.get('/performance/:id', getPerformanceMetrics);
 
 export default router;

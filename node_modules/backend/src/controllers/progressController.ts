@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import ProgressService from '../services/progressService';
 import questService from '../services/questService';
+import { cacheService } from '../services/cacheService';
 
 export class ProgressController {
   /**
@@ -100,6 +101,10 @@ export class ProgressController {
 
       // Complete the quest
       const result = await ProgressService.completeQuest(userId, questId, quest);
+
+      // Invalidate user progress cache
+      await cacheService.delPattern(`progress:${userId}:*`);
+      await cacheService.delPattern(`user:${userId}:*`);
 
       res.json({
         success: true,

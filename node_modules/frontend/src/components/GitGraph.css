@@ -256,3 +256,101 @@
     filter: brightness(2) drop-shadow(0 0 12px #ffd93d);
   }
 }
+
+/* Responsive design */
+@media (max-width: 767px) {
+  .git-graph-container {
+    padding: 12px;
+    border-radius: 8px;
+    max-height: 400px;
+  }
+
+  .git-graph-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .git-graph-title {
+    font-size: 16px;
+  }
+
+  .git-graph-title::before {
+    font-size: 20px;
+  }
+
+  .git-graph-info {
+    gap: 12px;
+    font-size: 11px;
+    width: 100%;
+  }
+
+  .git-graph-content {
+    padding: 12px;
+    min-height: 150px;
+    overflow-x: auto;
+  }
+
+  .git-graph-empty {
+    min-height: 150px;
+    font-size: 12px;
+  }
+
+  .git-graph-empty-icon {
+    font-size: 36px;
+  }
+
+  .git-graph-loading,
+  .git-graph-error {
+    min-height: 150px;
+    font-size: 12px;
+  }
+}
+
+/* Small mobile devices */
+@media (max-width: 360px) {
+  .git-graph-container {
+    padding: 10px;
+    max-height: 350px;
+  }
+
+  .git-graph-title {
+    font-size: 14px;
+  }
+
+  .git-graph-info {
+    font-size: 10px;
+    gap: 8px;
+  }
+
+  .git-graph-content {
+    padding: 10px;
+  }
+}
+
+/* Tablet */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .git-graph-container {
+    padding: 16px;
+    max-height: 500px;
+  }
+
+  .git-graph-title {
+    font-size: 17px;
+  }
+}
+
+/* Desktop and larger */
+@media (min-width: 1024px) {
+  .git-graph-container {
+    max-height: 600px;
+  }
+}
+
+/* Large desktop */
+@media (min-width: 1440px) {
+  .git-graph-container {
+    max-height: 700px;
+  }
+}

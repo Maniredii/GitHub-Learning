@@ -118,22 +118,30 @@ export const Editor: React.FC<EditorProps> = ({
   const detectedLanguage = detectLanguage(filePath);
 
   return (
-    <div className="editor-container">
+    <div className="editor-container" role="region" aria-label="Code editor">
       <div className="editor-header">
         <div className="editor-file-info">
-          <div className="editor-file-path">{filePath}</div>
+          <div className="editor-file-path" id="editor-file-path">{filePath}</div>
           {conflictMode && hasConflicts && (
-            <div className="editor-conflict-badge">
-              ⚠️ Conflicts detected
+            <div 
+              className="editor-conflict-badge"
+              role="status"
+              aria-live="polite"
+            >
+              <span aria-hidden="true">⚠️</span> Conflicts detected
             </div>
           )}
           {conflictMode && conflictsResolved && (
-            <div className="editor-resolved-badge">
-              ✓ Conflicts resolved
+            <div 
+              className="editor-resolved-badge"
+              role="status"
+              aria-live="polite"
+            >
+              <span aria-hidden="true">✓</span> Conflicts resolved
             </div>
           )}
         </div>
-        <div className="editor-actions">
+        <div className="editor-actions" role="group" aria-label="Editor actions">
           {conflictMode && hasConflicts && (
             <>
               <button
@@ -141,6 +149,7 @@ export const Editor: React.FC<EditorProps> = ({
                 onClick={handleAcceptCurrentChanges}
                 disabled={readOnly}
                 title="Accept all current branch changes"
+                aria-label="Accept all current branch changes"
               >
                 Accept Current
               </button>
@@ -149,6 +158,7 @@ export const Editor: React.FC<EditorProps> = ({
                 onClick={handleAcceptIncomingChanges}
                 disabled={readOnly}
                 title="Accept all incoming branch changes"
+                aria-label="Accept all incoming branch changes"
               >
                 Accept Incoming
               </button>
@@ -160,13 +170,19 @@ export const Editor: React.FC<EditorProps> = ({
               onClick={handleSave}
               disabled={!hasUnsavedChanges}
               title={hasUnsavedChanges ? 'Save changes (Ctrl+S)' : 'No changes to save'}
+              aria-label={hasUnsavedChanges ? 'Save changes (Ctrl+S)' : 'No changes to save'}
             >
               {hasUnsavedChanges ? 'Save *' : 'Saved'}
             </button>
           )}
         </div>
       </div>
-      <div className="editor-content">
+      <div 
+        className="editor-content"
+        role="textbox"
+        aria-labelledby="editor-file-path"
+        aria-multiline="true"
+      >
         <MonacoEditor
           height="100%"
           language={detectedLanguage}
@@ -183,6 +199,7 @@ export const Editor: React.FC<EditorProps> = ({
             automaticLayout: true,
             tabSize: 2,
             wordWrap: 'on',
+            ariaLabel: `Code editor for ${filePath}`,
           }}
         />
       </div>

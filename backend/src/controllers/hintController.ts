@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import hintService from '../services/hintService';
 import questService from '../services/questService';
+import analyticsService from '../services/analyticsService';
 
 export class HintController {
   /**
@@ -94,6 +95,9 @@ export class HintController {
 
       // Record that this hint was shown
       await hintService.recordHintShown(userId, questId, nextHint.hintIndex);
+
+      // Log hint usage analytics
+      await analyticsService.logHintUsage(userId, questId, nextHint.hintIndex);
 
       // Calculate XP penalty
       const tracking = await hintService.getHintTracking(userId, questId);

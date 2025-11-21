@@ -53,6 +53,23 @@
   letter-spacing: 0.5px;
 }
 
+.terminal-keyboard-toggle {
+  background: rgba(0, 255, 65, 0.1);
+  border: 1px solid #00ff41;
+  color: #00ff41;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.terminal-keyboard-toggle:active {
+  background: rgba(0, 255, 65, 0.3);
+  transform: scale(0.95);
+}
+
 .terminal-content {
   flex: 1;
   padding: 12px;
@@ -81,17 +98,41 @@
 @media (max-width: 768px) {
   .terminal-container {
     border-radius: 0;
+    height: 100%;
   }
 
   .terminal-header {
-    padding: 6px 10px;
+    padding: 8px 12px;
   }
 
   .terminal-title {
-    font-size: 11px;
+    font-size: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .terminal-content {
     padding: 8px;
+    font-size: 12px;
+  }
+
+  .terminal-buttons {
+    display: none;
+  }
+}
+
+/* Small mobile devices */
+@media (max-width: 360px) {
+  .terminal-header {
+    padding: 6px 8px;
+  }
+
+  .terminal-title {
+    font-size: 9px;
+  }
+
+  .terminal-content {
+    padding: 6px;
   }
 }

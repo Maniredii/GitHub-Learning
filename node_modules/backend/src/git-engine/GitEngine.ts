@@ -1,6 +1,7 @@
 import { Repository, Commit, Branch, PullRequest } from './models';
 import { FileTree } from 'shared/src/types';
 import { MergeEngine } from './MergeEngine';
+import { PerformanceCache, PerformanceMonitor } from './PerformanceOptimizer';
 
 /**
  * Result of a Git operation
@@ -15,14 +16,19 @@ export interface GitResult {
 /**
  * GitEngine - Main class for simulating Git operations
  * Implements core Git commands like add, commit, status, log, etc.
+ * Optimized with caching and performance monitoring
  */
 export class GitEngine {
   private repository: Repository;
   private mergeEngine: MergeEngine;
+  private cache: PerformanceCache;
+  private monitor: PerformanceMonitor;
 
   constructor(repository?: Repository) {
     this.repository = repository || Repository.create();
     this.mergeEngine = new MergeEngine();
+    this.cache = new PerformanceCache();
+    this.monitor = new PerformanceMonitor();
   }
 
   /**
@@ -37,6 +43,22 @@ export class GitEngine {
    */
   setRepository(repository: Repository): void {
     this.repository = repository;
+    // Clear cache when repository changes
+    this.cache.clearAll();
+  }
+
+  /**
+   * Get performance metrics
+   */
+  getPerformanceMetrics(): Record<string, { count: number; avgTime: number; maxTime: number }> {
+    return this.monitor.getAllMetrics();
+  }
+
+  /**
+   * Clear performance cache
+   */
+  clearCache(): void {
+    this.cache.clearAll();
   }
 
   /**
@@ -249,73 +271,92 @@ export class GitEngine {
    * git commit -m "<message>" - Create a commit from staged changes
    */
   commit(message: string, author: string = 'Chrono-Coder'): GitResult {
-    // Check if there are staged changes
-    const stagedFiles = Object.keys(this.repository.stagingArea);
-    if (stagedFiles.length === 0) {
+    return this.monitor.measure('commit', () => {
+      // Check if there are staged changes
+      const stagedFiles = Object.keys(this.repository.stagingArea);
+      if (stagedFiles.length === 0) {
+        return {
+          success: false,
+          message: 'nothing to commit, working tree clean',
+          error: 'No changes staged for commit',
+        };
+      }
+
+      // Check if message is provided
+      if (!message || message.trim() === '') {
+        return {
+          success: false,
+          message: 'Aborting commit due to empty commit message.',
+          error: 'Commit message cannot be empty',
+        };
+      }
+
+      // Get parent commit
+      const currentCommit = this.repository.getCurrentCommit();
+      const parentHash = currentCommit ? currentCommit.hash : null;
+
+      // Create tree from staging area
+      const tree: FileTree = {};
+      Object.keys(this.repository.stagingArea).forEach((filePath) => {
+        tree[filePath] = { ...this.repository.stagingArea[filePath] };
+      });
+
+      // Create the commit
+      const commit = Commit.create(message, author, tree, parentHash);
+
+      // Add commit to repository
+      this.repository.addCommit(commit);
+
+      // Update current branch to point to new commit
+      const currentBranch = this.repository.getCurrentBranch();
+      if (currentBranch) {
+        currentBranch.updateCommit(commit.hash);
+      } else {
+        // If HEAD is detached, update HEAD directly
+        this.repository.updateHead(commit.hash);
+      }
+
+      // Update working directory to match the commit
+      this.repository.workingDirectory = { ...tree };
+
+      // Clear staging area
+      this.repository.stagingArea = {};
+
+      // Invalidate history cache
+      this.cache.clearPattern(/^history:/);
+
+      const output = `[${this.repository.head} ${commit.shortHash}] ${message}\n ${stagedFiles.length} file(s) changed`;
+
       return {
-        success: false,
-        message: 'nothing to commit, working tree clean',
-        error: 'No changes staged for commit',
+        success: true,
+        message: 'Commit created successfully',
+        output: output,
       };
-    }
-
-    // Check if message is provided
-    if (!message || message.trim() === '') {
-      return {
-        success: false,
-        message: 'Aborting commit due to empty commit message.',
-        error: 'Commit message cannot be empty',
-      };
-    }
-
-    // Get parent commit
-    const currentCommit = this.repository.getCurrentCommit();
-    const parentHash = currentCommit ? currentCommit.hash : null;
-
-    // Create tree from staging area
-    const tree: FileTree = {};
-    Object.keys(this.repository.stagingArea).forEach((filePath) => {
-      tree[filePath] = { ...this.repository.stagingArea[filePath] };
     });
-
-    // Create the commit
-    const commit = Commit.create(message, author, tree, parentHash);
-
-    // Add commit to repository
-    this.repository.addCommit(commit);
-
-    // Update current branch to point to new commit
-    const currentBranch = this.repository.getCurrentBranch();
-    if (currentBranch) {
-      currentBranch.updateCommit(commit.hash);
-    } else {
-      // If HEAD is detached, update HEAD directly
-      this.repository.updateHead(commit.hash);
-    }
-
-    // Update working directory to match the commit
-    this.repository.workingDirectory = { ...tree };
-
-    // Clear staging area
-    this.repository.stagingArea = {};
-
-    const output = `[${this.repository.head} ${commit.shortHash}] ${message}\n ${stagedFiles.length} file(s) changed`;
-
-    return {
-      success: true,
-      message: 'Commit created successfully',
-      output: output,
-    };
   }
 
   /**
-   * Get the commit history from a given commit
+   * Get the commit history from a given commit (optimized with caching)
    */
   private getCommitHistory(startHash: string | null): Commit[] {
-    const history: Commit[] = [];
-    let currentHash = startHash;
+    if (!startHash) {
+      return [];
+    }
 
-    while (currentHash) {
+    // Check cache first
+    const cacheKey = `history:${startHash}`;
+    const cached = this.cache.get<Commit[]>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    // Build history
+    const history: Commit[] = [];
+    let currentHash: string | null = startHash;
+    const visited = new Set<string>(); // Prevent infinite loops
+
+    while (currentHash && !visited.has(currentHash)) {
+      visited.add(currentHash);
       const commit = this.repository.getCommit(currentHash);
       if (!commit) break;
 
@@ -323,62 +364,67 @@ export class GitEngine {
       currentHash = commit.parent;
     }
 
+    // Cache the result (5 second TTL)
+    this.cache.set(cacheKey, history, 5000);
+
     return history;
   }
 
   /**
-   * git log - Display commit history from HEAD
+   * git log - Display commit history from HEAD (optimized)
    */
   log(options?: { oneline?: boolean; maxCount?: number }): GitResult {
-    const currentCommit = this.repository.getCurrentCommit();
+    return this.monitor.measure('log', () => {
+      const currentCommit = this.repository.getCurrentCommit();
 
-    if (!currentCommit) {
-      return {
-        success: false,
-        message: 'fatal: your current branch does not have any commits yet',
-        error: 'No commits in repository',
-      };
-    }
+      if (!currentCommit) {
+        return {
+          success: false,
+          message: 'fatal: your current branch does not have any commits yet',
+          error: 'No commits in repository',
+        };
+      }
 
-    // Get commit history
-    const history = this.getCommitHistory(currentCommit.hash);
+      // Get commit history (cached)
+      const history = this.getCommitHistory(currentCommit.hash);
 
-    // Apply max count limit if specified
-    const commits = options?.maxCount ? history.slice(0, options.maxCount) : history;
+      // Apply max count limit if specified
+      const commits = options?.maxCount ? history.slice(0, options.maxCount) : history;
 
-    if (commits.length === 0) {
-      return {
-        success: false,
-        message: 'No commits found',
-        error: 'No commits in history',
-      };
-    }
+      if (commits.length === 0) {
+        return {
+          success: false,
+          message: 'No commits found',
+          error: 'No commits in history',
+        };
+      }
 
-    // Format output
-    let output = '';
-    const oneline = options?.oneline || false;
+      // Format output
+      let output = '';
+      const oneline = options?.oneline || false;
 
-    commits.forEach((commit, index) => {
-      if (oneline) {
-        output += commit.format(true);
-      } else {
-        output += commit.format(false);
-        // Add blank line between commits (except for the last one)
-        if (index < commits.length - 1) {
+      commits.forEach((commit, index) => {
+        if (oneline) {
+          output += commit.format(true);
+        } else {
+          output += commit.format(false);
+          // Add blank line between commits (except for the last one)
+          if (index < commits.length - 1) {
+            output += '\n';
+          }
+        }
+
+        if (oneline && index < commits.length - 1) {
           output += '\n';
         }
-      }
+      });
 
-      if (oneline && index < commits.length - 1) {
-        output += '\n';
-      }
+      return {
+        success: true,
+        message: 'Log retrieved',
+        output: output,
+      };
     });
-
-    return {
-      success: true,
-      message: 'Log retrieved',
-      output: output,
-    };
   }
 
   /**

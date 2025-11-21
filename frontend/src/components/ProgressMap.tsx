@@ -192,8 +192,14 @@ export const ProgressMap: React.FC<ProgressMapProps> = ({
   const hoveredChapter = hoveredRegion ? chapters.find((c) => c.id === hoveredRegion) : null;
 
   return (
-    <div className="progress-map">
-      <svg viewBox="0 0 1200 400" className="progress-map__svg" xmlns="http://www.w3.org/2000/svg">
+    <div className="progress-map" role="region" aria-label="Quest progress map">
+      <svg 
+        viewBox="0 0 1200 400" 
+        className="progress-map__svg" 
+        xmlns="http://www.w3.org/2000/svg"
+        role="img"
+        aria-label="Visual representation of quest chapters and progress"
+      >
         {/* Background gradient */}
         <defs>
           <linearGradient id="mapBackground" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -253,10 +259,20 @@ export const ProgressMap: React.FC<ProgressMapProps> = ({
                 onClick={() => handleRegionClick(regionPath.id)}
                 onMouseEnter={(e) => handleRegionMouseEnter(regionPath.id, e)}
                 onMouseLeave={handleRegionMouseLeave}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleRegionClick(regionPath.id);
+                  }
+                }}
                 style={{
                   cursor: isUnlocked ? 'pointer' : 'not-allowed',
                   opacity: status === 'locked' ? 0.4 : 1,
                 }}
+                role="button"
+                tabIndex={isUnlocked ? 0 : -1}
+                aria-label={`${chapters.find(c => c.id === regionPath.id)?.title || 'Chapter'} - ${status === 'completed' ? 'Completed' : status === 'current' ? 'Current chapter' : status === 'unlocked' ? 'Available' : 'Locked'}`}
+                aria-disabled={!isUnlocked}
               />
 
               {/* Region icon/marker */}

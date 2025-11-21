@@ -81,18 +81,78 @@
 }
 
 /* Responsive adjustments */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
+  .progress-map {
+    border-radius: 0;
+    min-height: 250px;
+  }
+
+  .progress-map__svg {
+    min-height: 250px;
+  }
+
   .progress-map__tooltip {
-    max-width: 200px;
-    padding: 10px 12px;
+    max-width: 180px;
+    padding: 8px 10px;
+    font-size: 11px;
   }
 
   .progress-map__tooltip-title {
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .progress-map__tooltip-description {
+    font-size: 10px;
+  }
+
+  .progress-map__tooltip-premium {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+}
+
+/* Small mobile devices */
+@media (max-width: 360px) {
+  .progress-map {
+    min-height: 200px;
+  }
+
+  .progress-map__svg {
+    min-height: 200px;
+  }
+
+  .progress-map__tooltip {
+    max-width: 150px;
+    padding: 6px 8px;
+  }
+
+  .progress-map__tooltip-title {
     font-size: 11px;
+  }
+
+  .progress-map__tooltip-description {
+    font-size: 9px;
+  }
+}
+
+/* Tablet */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .progress-map {
+    min-height: 350px;
+  }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+  .progress-map {
+    min-height: 400px;
+  }
+}
+
+/* Large desktop */
+@media (min-width: 1440px) {
+  .progress-map {
+    min-height: 500px;
   }
 }
 
@@ -109,4 +169,14 @@
 
 .progress-map__region--current {
   animation: pulse 2s ease-in-out infinite;
+}
+
+/* Accessibility: Focus styles for keyboard navigation */
+.progress-map__region:focus-visible {
+  outline: 3px solid #00ff41;
+  outline-offset: 3px;
+}
+
+.progress-map__region--locked:focus-visible {
+  outline-color: #666;
 }

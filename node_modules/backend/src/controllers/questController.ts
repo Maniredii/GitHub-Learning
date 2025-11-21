@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import questService from '../services/questService';
 import questValidationService from '../services/questValidationService';
+import analyticsService from '../services/analyticsService';
 import { RepositoryState } from '../../../shared/src/types';
 
 export class QuestController {
@@ -78,6 +79,12 @@ export class QuestController {
             },
           });
           return;
+        }
+
+        // Start quest session if not already active
+        const activeSession = await analyticsService.getActiveQuestSession(userId, id);
+        if (!activeSession) {
+          await analyticsService.startQuestSession(userId, id);
         }
       }
 
@@ -204,6 +211,7 @@ export class QuestController {
     try {
       const { id } = req.params;
       const { repositoryState } = req.body as { repositoryState: RepositoryState };
+      const userId = (req as any).user?.userId;
 
       if (!repositoryState) {
         res.status(400).json({
@@ -235,6 +243,14 @@ export class QuestController {
         repositoryState,
         quest.initial_repository_state
       );
+
+      // End quest session if user is authenticated
+      if (userId) {
+        const activeSession = await analyticsService.getActiveQuestSession(userId, id);
+        if (activeSession) {
+          await analyticsService.endQuestSession(activeSession.id!, validationResult.success);
+        }
+      }
 
       res.json({
         success: validationResult.success,

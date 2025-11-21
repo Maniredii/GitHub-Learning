@@ -13,7 +13,10 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "migrate:latest": "knex migrate:latest --knexfile knexfile.ts",
     "migrate:rollback": "knex migrate:rollback --knexfile knexfile.ts",
-    "migrate:make": "knex migrate:make --knexfile knexfile.ts"
+    "migrate:make": "knex migrate:make --knexfile knexfile.ts",
+    "load-test:smoke": "k6 run load-tests/smoke-test.js",
+    "load-test:basic": "k6 run load-tests/basic-load-test.js",
+    "load-test:stress": "k6 run load-tests/stress-test.js"
   },
   "keywords": [],
   "author": "",
@@ -26,6 +29,7 @@
     "jsonwebtoken": "^9.0.2",
     "knex": "^3.1.0",
     "pg": "^8.11.3",
+    "redis": "^5.10.0",
     "shared": "*",
     "stripe": "^20.0.0",
     "uuid": "^9.0.1"
@@ -39,6 +43,7 @@
     "@types/knex": "^0.15.2",
     "@types/node": "^20.10.5",
     "@types/pg": "^8.10.9",
+    "@types/redis": "^4.0.10",
     "@types/supertest": "^6.0.3",
     "@types/uuid": "^9.0.8",
     "@typescript-eslint/eslint-plugin": "^6.15.0",

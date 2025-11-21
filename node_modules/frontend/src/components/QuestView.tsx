@@ -80,7 +80,7 @@ export const QuestView: React.FC<QuestViewProps> = ({ quest, onComplete, onNext 
     }
   };
 
-  const handleCommandExecute = async (command: string, output: string) => {
+  const handleCommandExecute = async () => {
     // Clear error state on successful command
     setLastError(null);
     setLastCommand(null);
@@ -123,7 +123,7 @@ export const QuestView: React.FC<QuestViewProps> = ({ quest, onComplete, onNext 
       } else {
         // Record incorrect attempt
         try {
-          const attemptResult = await hintApi.recordIncorrectAttempt(quest.id);
+          await hintApi.recordIncorrectAttempt(quest.id);
           // The HintPanel will automatically show offer if needed
         } catch (err) {
           console.error('Failed to record incorrect attempt:', err);
@@ -137,7 +137,7 @@ export const QuestView: React.FC<QuestViewProps> = ({ quest, onComplete, onNext 
     }
   };
 
-  const handleHintShown = (hintsShown: number, penalty: number) => {
+  const handleHintShown = (_hintsShown: number, penalty: number) => {
     setXpPenalty(penalty);
     setAdjustedXp(quest.xpReward - penalty);
   };
@@ -194,14 +194,26 @@ export const QuestView: React.FC<QuestViewProps> = ({ quest, onComplete, onNext 
   }
 
   return (
-    <div className="quest-view">
+    <div className="quest-view" role="main" aria-labelledby="quest-title">
       {/* Quest Header */}
       <div className="quest-view-header">
         <div className="quest-view-title-section">
-          <h1 className="quest-view-title">{quest.title}</h1>
-          {isCompleted && <div className="quest-view-completed-badge">✓ Completed</div>}
+          <h1 className="quest-view-title" id="quest-title">{quest.title}</h1>
+          {isCompleted && (
+            <div 
+              className="quest-view-completed-badge" 
+              role="status"
+              aria-label="Quest completed"
+            >
+              ✓ Completed
+            </div>
+          )}
         </div>
-        <div className="quest-view-xp-badge">
+        <div 
+          className="quest-view-xp-badge"
+          role="status"
+          aria-label={`Experience points: ${xpPenalty > 0 ? `${adjustedXp} XP (reduced from ${quest.xpReward} XP due to hints)` : `${quest.xpReward} XP`}`}
+        >
           {xpPenalty > 0 ? (
             <>
               <span className="quest-view-xp-adjusted">{adjustedXp} XP</span>
@@ -214,18 +226,25 @@ export const QuestView: React.FC<QuestViewProps> = ({ quest, onComplete, onNext 
       </div>
 
       {/* Quest Narrative */}
-      <div className="quest-view-narrative">
-        <div className="quest-view-narrative-icon">📜</div>
+      <section 
+        className="quest-view-narrative"
+        aria-labelledby="quest-narrative-label"
+      >
+        <div className="quest-view-narrative-icon" aria-hidden="true">📜</div>
         <div className="quest-view-narrative-content">
+          <h2 className="visually-hidden" id="quest-narrative-label">Quest Story</h2>
           <p>{quest.narrative}</p>
         </div>
-      </div>
+      </section>
 
       {/* Quest Objective */}
-      <div className="quest-view-objective">
-        <div className="quest-view-objective-label">Learning Objective:</div>
+      <section 
+        className="quest-view-objective"
+        aria-labelledby="quest-objective-label"
+      >
+        <div className="quest-view-objective-label" id="quest-objective-label">Learning Objective:</div>
         <div className="quest-view-objective-text">{quest.objective}</div>
-      </div>
+      </section>
 
       {/* Hint Panel */}
       {quest.hints && quest.hints.length > 0 && !isCompleted && (
@@ -247,8 +266,12 @@ export const QuestView: React.FC<QuestViewProps> = ({ quest, onComplete, onNext 
               ? 'quest-view-validation-success'
               : 'quest-view-validation-failure'
           }`}
+          role="alert"
+          aria-live="assertive"
         >
-          <div className="quest-view-validation-icon">{validationResult.success ? '✓' : '✗'}</div>
+          <div className="quest-view-validation-icon" aria-hidden="true">
+            {validationResult.success ? '✓' : '✗'}
+          </div>
           <div className="quest-view-validation-content">
             <div className="quest-view-validation-feedback">{validationResult.feedback}</div>
             {validationResult.success && (
@@ -262,8 +285,12 @@ export const QuestView: React.FC<QuestViewProps> = ({ quest, onComplete, onNext 
 
       {/* Error Display */}
       {error && repositoryId && (
-        <div className="quest-view-error-banner">
-          <span className="quest-view-error-banner-icon">⚠️</span>
+        <div 
+          className="quest-view-error-banner"
+          role="alert"
+          aria-live="assertive"
+        >
+          <span className="quest-view-error-banner-icon" aria-hidden="true">⚠️</span>
           {error}
         </div>
       )}
@@ -328,17 +355,23 @@ export const QuestView: React.FC<QuestViewProps> = ({ quest, onComplete, onNext 
       )}
 
       {/* Action Buttons */}
-      <div className="quest-view-actions">
+      <div className="quest-view-actions" role="group" aria-label="Quest actions">
         <button
           className="quest-view-button quest-view-button-validate"
           onClick={handleValidateQuest}
           disabled={isValidating || isCompleted}
+          aria-label={isValidating ? 'Validating quest progress' : isCompleted ? 'Quest already completed' : 'Check quest progress'}
+          aria-busy={isValidating}
         >
           {isValidating ? 'Checking...' : isCompleted ? 'Quest Complete' : 'Check Progress'}
         </button>
 
         {isCompleted && onNext && (
-          <button className="quest-view-button quest-view-button-next" onClick={handleNextQuest}>
+          <button 
+            className="quest-view-button quest-view-button-next" 
+            onClick={handleNextQuest}
+            aria-label="Proceed to next quest"
+          >
             Next Quest →
           </button>
         )}

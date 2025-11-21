@@ -93,15 +93,20 @@ export const QuestList: React.FC<QuestListProps> = ({
   }
 
   return (
-    <div className="quest-list">
+    <div className="quest-list" role="region" aria-labelledby="quest-list-title">
       <div className="quest-list-header">
-        <h2 className="quest-list-title">Chapter Quests</h2>
-        <div className="quest-list-progress">
+        <h2 className="quest-list-title" id="quest-list-title">Chapter Quests</h2>
+        <div 
+          className="quest-list-progress"
+          role="status"
+          aria-live="polite"
+          aria-label={`${quests.filter((q) => isQuestCompleted(q.id)).length} of ${quests.length} quests completed`}
+        >
           {quests.filter((q) => isQuestCompleted(q.id)).length} / {quests.length} completed
         </div>
       </div>
 
-      <div className="quest-list-items">
+      <div className="quest-list-items" role="list">
         {quests.map((quest, index) => {
           const completed = isQuestCompleted(quest.id);
           const locked = isQuestLocked(quest, index);
@@ -116,9 +121,20 @@ export const QuestList: React.FC<QuestListProps> = ({
                 selected ? 'quest-list-item-selected' : ''
               }`}
               onClick={() => handleQuestClick(quest.id, index)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleQuestClick(quest.id, index);
+                }
+              }}
+              role="listitem button"
+              tabIndex={locked ? -1 : 0}
+              aria-label={`Quest ${index + 1}: ${quest.title}. ${quest.objective}. Reward: ${quest.xpReward} XP. Status: ${locked ? 'Locked' : completed ? 'Completed' : 'Available'}`}
+              aria-disabled={locked}
+              aria-current={selected ? 'true' : undefined}
             >
               {/* Quest Number */}
-              <div className="quest-list-item-number">
+              <div className="quest-list-item-number" aria-hidden="true">
                 {locked ? (
                   <span className="quest-list-item-lock-icon">🔒</span>
                 ) : completed ? (
@@ -135,13 +151,13 @@ export const QuestList: React.FC<QuestListProps> = ({
               </div>
 
               {/* Quest XP */}
-              <div className="quest-list-item-xp">
+              <div className="quest-list-item-xp" aria-hidden="true">
                 <span className="quest-list-item-xp-icon">⭐</span>
                 <span className="quest-list-item-xp-value">{quest.xpReward}</span>
               </div>
 
               {/* Status Indicator */}
-              <div className="quest-list-item-status">
+              <div className="quest-list-item-status" aria-hidden="true">
                 {locked && <span className="quest-list-item-status-text">Locked</span>}
                 {completed && !locked && (
                   <span className="quest-list-item-status-text">Completed</span>
@@ -157,7 +173,11 @@ export const QuestList: React.FC<QuestListProps> = ({
 
       {/* Total XP */}
       <div className="quest-list-footer">
-        <div className="quest-list-total-xp">
+        <div 
+          className="quest-list-total-xp"
+          role="status"
+          aria-label={`Total chapter experience points: ${quests.reduce((sum, quest) => sum + quest.xpReward, 0)} XP`}
+        >
           <span className="quest-list-total-xp-label">Total Chapter XP:</span>
           <span className="quest-list-total-xp-value">
             {quests.reduce((sum, quest) => sum + quest.xpReward, 0)} XP

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { createGitgraph, GitgraphOptions, TemplateName, templateExtend } from '@gitgraph/js';
+import { createGitgraph, TemplateName, templateExtend } from '@gitgraph/js';
+import type { GitgraphOptions } from '@gitgraph/core';
 import './GitGraph.css';
 
 interface Commit {
@@ -96,11 +97,11 @@ export const GitGraph: React.FC<GitGraphProps> = ({
       });
 
       // Configure gitgraph options
-      const options: GitgraphOptions = {
+      const options = {
         template: customTemplate,
-        orientation: 'vertical-reverse',
-        mode: 'compact',
-      };
+        orientation: 'vertical-reverse' as const,
+        mode: 'compact' as const,
+      } as GitgraphOptions;
 
       // Create gitgraph instance
       const gitgraph = createGitgraph(graphContainerRef.current, options);
@@ -175,16 +176,13 @@ export const GitGraph: React.FC<GitGraphProps> = ({
         let currentCommit = commitMap.get(b.commitHash);
         while (currentCommit) {
           if (currentCommit.hash === commit.hash) return true;
-          currentCommit = currentCommit.parent ? commitMap.get(currentCommit.parent) : null;
+          currentCommit = currentCommit.parent ? commitMap.get(currentCommit.parent) : undefined;
         }
         return false;
       });
 
       const branchName = branch?.name || mainBranchName;
       const gitgraphBranch = getOrCreateBranch(branchName);
-
-      // Check if this is a merge commit
-      const isMerge = commit.parents && commit.parents.length > 1;
 
       // Render the commit
       gitgraphBranch.commit({
@@ -229,43 +227,49 @@ export const GitGraph: React.FC<GitGraphProps> = ({
   };
 
   return (
-    <div className="git-graph-container">
+    <div className="git-graph-container" role="region" aria-labelledby="git-graph-title">
       <div className="git-graph-header">
-        <div className="git-graph-title">Repository Graph</div>
-        <div className="git-graph-info">
+        <h3 className="git-graph-title" id="git-graph-title">Repository Graph</h3>
+        <div className="git-graph-info" role="status" aria-live="polite">
           <div className="git-graph-info-item">
             <span className="git-graph-info-label">Commits:</span>
-            <span className="git-graph-info-value">{commits.length}</span>
+            <span className="git-graph-info-value" aria-label={`${commits.length} commits`}>{commits.length}</span>
           </div>
           <div className="git-graph-info-item">
             <span className="git-graph-info-label">Branches:</span>
-            <span className="git-graph-info-value">{branches.length}</span>
+            <span className="git-graph-info-value" aria-label={`${branches.length} branches`}>{branches.length}</span>
           </div>
           <div className="git-graph-info-item">
             <span className="git-graph-info-label">HEAD:</span>
-            <span className="git-graph-info-value">{currentHead}</span>
+            <span className="git-graph-info-value" aria-label={`Current HEAD: ${currentHead}`}>{currentHead}</span>
           </div>
         </div>
       </div>
 
       <div className="git-graph-content">
         {isLoading && (
-          <div className="git-graph-loading">Loading graph...</div>
+          <div className="git-graph-loading" role="status" aria-live="polite" aria-label="Loading repository graph">
+            Loading graph...
+          </div>
         )}
 
         {error && (
-          <div className="git-graph-error">
-            <div className="git-graph-error-icon">⚠</div>
+          <div className="git-graph-error" role="alert" aria-live="assertive">
+            <div className="git-graph-error-icon" aria-hidden="true">⚠</div>
             <div className="git-graph-error-text">{error}</div>
-            <button className="git-graph-error-retry" onClick={handleRetry}>
+            <button 
+              className="git-graph-error-retry" 
+              onClick={handleRetry}
+              aria-label="Retry loading graph"
+            >
               Retry
             </button>
           </div>
         )}
 
         {!isLoading && !error && commits.length === 0 && (
-          <div className="git-graph-empty">
-            <div className="git-graph-empty-icon">📊</div>
+          <div className="git-graph-empty" role="status">
+            <div className="git-graph-empty-icon" aria-hidden="true">📊</div>
             <div className="git-graph-empty-text">No commits yet</div>
             <div className="git-graph-empty-hint">
               Create your first commit to see the graph
@@ -274,7 +278,11 @@ export const GitGraph: React.FC<GitGraphProps> = ({
         )}
 
         {!isLoading && !error && commits.length > 0 && (
-          <div ref={graphContainerRef} />
+          <div 
+            ref={graphContainerRef} 
+            role="img" 
+            aria-label={`Git repository graph showing ${commits.length} commits across ${branches.length} branches. Current HEAD is at ${currentHead}`}
+          />
         )}
       </div>
     </div>

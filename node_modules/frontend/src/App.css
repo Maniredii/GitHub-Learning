@@ -28,3 +28,86 @@
     transform: rotate(360deg);
   }
 }
+
+/* Responsive design */
+@media (max-width: 767px) {
+  #root {
+    overflow-x: hidden;
+  }
+
+  .protected-route-loading {
+    padding: 1rem;
+  }
+
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border-width: 3px;
+  }
+}
+
+/* Ensure touch-friendly interactions on mobile */
+@media (hover: none) and (pointer: coarse) {
+  button,
+  a,
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Global accessibility styles */
+
+/* Skip to main content link for keyboard users */
+.skip-to-main {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #00ff41;
+  color: #1a1a2e;
+  padding: 8px 16px;
+  text-decoration: none;
+  font-weight: bold;
+  z-index: 10000;
+  border-radius: 0 0 4px 0;
+}
+
+.skip-to-main:focus {
+  top: 0;
+}
+
+/* Focus visible styles for keyboard navigation */
+*:focus-visible {
+  outline: 2px solid #00ff41;
+  outline-offset: 2px;
+}
+
+/* Ensure sufficient color contrast for text */
+body {
+  color: #eee;
+  background: #1a1a2e;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  * {
+    border-color: currentColor !important;
+  }
+  
+  button,
+  a {
+    text-decoration: underline;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -86,6 +86,11 @@
   cursor: not-allowed;
 }
 
+.editor-button:focus-visible {
+  outline: 2px solid #0e639c;
+  outline-offset: 2px;
+}
+
 .editor-button-save-active {
   background-color: #0e639c;
   border-color: #0e639c;
@@ -190,4 +195,77 @@
   text-align: center;
   color: #f48771;
   font-family: 'Courier New', monospace;
+}
+
+/* Responsive design */
+@media (max-width: 767px) {
+  .editor-header {
+    padding: 6px 10px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .editor-file-info {
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .editor-file-path {
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .editor-conflict-badge,
+  .editor-resolved-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+
+  .editor-actions {
+    gap: 6px;
+    width: 100%;
+  }
+
+  .editor-button {
+    padding: 6px 10px;
+    font-size: 11px;
+    flex: 1;
+  }
+}
+
+/* Small mobile devices */
+@media (max-width: 360px) {
+  .editor-header {
+    padding: 4px 8px;
+  }
+
+  .editor-file-path {
+    font-size: 10px;
+  }
+
+  .editor-button {
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+}
+
+/* Tablet */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .editor-header {
+    padding: 8px 12px;
+  }
+
+  .editor-file-path {
+    font-size: 12px;
+  }
+}
+
+/* Desktop and larger */
+@media (min-width: 1024px) {
+  .editor-container {
+    min-height: 400px;
+  }
 }

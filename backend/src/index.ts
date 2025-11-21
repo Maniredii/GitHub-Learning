@@ -2,6 +2,7 @@ import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import db from './database/db';
+import { cacheService } from './services/cacheService';
 import authRoutes from './routes/authRoutes';
 import gitRoutes from './routes/gitRoutes';
 import questRoutes from './routes/questRoutes';
@@ -13,8 +14,14 @@ import hintRoutes from './routes/hintRoutes';
 import userRoutes from './routes/userRoutes';
 import premiumRoutes from './routes/premiumRoutes';
 import paymentRoutes from './routes/paymentRoutes';
+import analyticsRoutes from './routes/analyticsRoutes';
 
 dotenv.config();
+
+// Initialize cache service
+cacheService.connect().catch((err) => {
+  console.warn('Cache service unavailable, continuing without cache:', err);
+});
 
 const app: Application = express();
 const PORT = process.env.PORT || 3000;
@@ -37,12 +44,14 @@ app.get('/health', async (_req: Request, res: Response) => {
       status: 'ok',
       message: 'GitQuest API is running',
       database: 'connected',
+      cache: cacheService.isAvailable() ? 'connected' : 'unavailable',
     });
   } catch (error) {
     res.status(503).json({
       status: 'error',
       message: 'GitQuest API is running but database is unavailable',
       database: 'disconnected',
+      cache: cacheService.isAvailable() ? 'connected' : 'unavailable',
     });
   }
 });
@@ -82,6 +91,9 @@ app.use('/api/premium', premiumRoutes);
 
 // Payment routes (webhook needs raw body, handled in route)
 app.use('/api/payment', paymentRoutes);
+
+// Analytics routes
+app.use('/api/analytics', analyticsRoutes);
 
 // Start server
 app.listen(PORT, () => {

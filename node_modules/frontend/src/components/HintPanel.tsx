@@ -14,7 +14,7 @@ export interface HintPanelProps {
 
 export const HintPanel: React.FC<HintPanelProps> = ({
   questId,
-  questXpReward,
+  questXpReward: _questXpReward,
   totalHints,
   onHintShown,
   lastError,
@@ -109,11 +109,16 @@ export const HintPanel: React.FC<HintPanelProps> = ({
   const xpPenaltyPercent = Math.min((tracking?.hints_shown || 0) * 5, 25);
 
   return (
-    <div className="hint-panel">
+    <div className="hint-panel" role="complementary" aria-label="Quest hints and help">
       {/* Contextual Hint (automatic) */}
       {contextualHint && !currentHint && (
-        <div className="hint-panel-contextual">
-          <div className="hint-panel-contextual-icon">💡</div>
+        <div 
+          className="hint-panel-contextual"
+          role="status"
+          aria-live="polite"
+          aria-label="Contextual hint"
+        >
+          <div className="hint-panel-contextual-icon" aria-hidden="true">💡</div>
           <div className="hint-panel-contextual-content">
             <div className="hint-panel-contextual-title">Quick Tip</div>
             <div className="hint-panel-contextual-text">{contextualHint}</div>
@@ -123,28 +128,40 @@ export const HintPanel: React.FC<HintPanelProps> = ({
 
       {/* Hint Offer Modal */}
       {showHintOffer && !currentHint && (
-        <div className="hint-panel-offer">
-          <div className="hint-panel-offer-icon">💡</div>
+        <div 
+          className="hint-panel-offer"
+          role="dialog"
+          aria-labelledby="hint-offer-title"
+          aria-describedby="hint-offer-description"
+        >
+          <div className="hint-panel-offer-icon" aria-hidden="true">💡</div>
           <div className="hint-panel-offer-content">
-            <div className="hint-panel-offer-title">Need a hint?</div>
-            <div className="hint-panel-offer-text">
+            <div className="hint-panel-offer-title" id="hint-offer-title">Need a hint?</div>
+            <div className="hint-panel-offer-text" id="hint-offer-description">
               You've had {tracking?.incorrect_attempts} incorrect attempts. Would you like a hint?
             </div>
-            <div className="hint-panel-offer-warning">
+            <div 
+              className="hint-panel-offer-warning"
+              role="note"
+              aria-label={`Warning: Using hints will reduce your XP reward by 5% per hint. Current penalty: ${xpPenaltyPercent}%`}
+            >
               Using hints will reduce your XP reward by 5% per hint (current penalty:{' '}
               {xpPenaltyPercent}%)
             </div>
-            <div className="hint-panel-offer-actions">
+            <div className="hint-panel-offer-actions" role="group" aria-label="Hint options">
               <button
                 className="hint-panel-button hint-panel-button-primary"
                 onClick={handleShowHint}
                 disabled={isLoading}
+                aria-label={isLoading ? 'Loading hint' : 'Show hint'}
+                aria-busy={isLoading}
               >
                 {isLoading ? 'Loading...' : 'Show Hint'}
               </button>
               <button
                 className="hint-panel-button hint-panel-button-secondary"
                 onClick={handleDismissOffer}
+                aria-label="Dismiss hint offer"
               >
                 No Thanks
               </button>
@@ -155,19 +172,32 @@ export const HintPanel: React.FC<HintPanelProps> = ({
 
       {/* Current Hint Display */}
       {currentHint && currentHint.hint && (
-        <div className="hint-panel-display">
+        <div 
+          className="hint-panel-display"
+          role="region"
+          aria-labelledby="hint-display-title"
+          aria-live="polite"
+        >
           <div className="hint-panel-display-header">
-            <div className="hint-panel-display-title">
-              <span className="hint-panel-display-icon">💡</span>
+            <div className="hint-panel-display-title" id="hint-display-title">
+              <span className="hint-panel-display-icon" aria-hidden="true">💡</span>
               Hint {(currentHint.hintIndex || 0) + 1} of {currentHint.totalHints}
             </div>
-            <button className="hint-panel-display-close" onClick={handleDismissHint}>
+            <button 
+              className="hint-panel-display-close" 
+              onClick={handleDismissHint}
+              aria-label="Close hint"
+            >
               ✕
             </button>
           </div>
           <div className="hint-panel-display-content">{currentHint.hint}</div>
           <div className="hint-panel-display-footer">
-            <div className="hint-panel-display-xp">
+            <div 
+              className="hint-panel-display-xp"
+              role="status"
+              aria-label={`Adjusted experience points: ${currentHint.adjustedXp}, penalty: ${currentHint.xpPenalty}`}
+            >
               Adjusted XP: {currentHint.adjustedXp} (-{currentHint.xpPenalty})
             </div>
           </div>
@@ -192,31 +222,39 @@ export const HintPanel: React.FC<HintPanelProps> = ({
 
       {/* Command Documentation */}
       {commandDoc && (
-        <div className="hint-panel-documentation">
+        <div className="hint-panel-documentation" role="region" aria-label="Command documentation">
           <button
             className="hint-panel-documentation-toggle"
             onClick={handleShowDocumentation}
+            aria-expanded={showDocumentation}
+            aria-controls="documentation-content"
+            aria-label={`${showDocumentation ? 'Hide' : 'Show'} command reference for ${commandDoc.command}`}
           >
-            📚 Command Reference: {commandDoc.command}
-            <span className="hint-panel-documentation-arrow">
+            <span aria-hidden="true">📚</span> Command Reference: {commandDoc.command}
+            <span className="hint-panel-documentation-arrow" aria-hidden="true">
               {showDocumentation ? '▼' : '▶'}
             </span>
           </button>
           {showDocumentation && (
-            <div className="hint-panel-documentation-content">
+            <div 
+              className="hint-panel-documentation-content"
+              id="documentation-content"
+              role="region"
+              aria-label={`Documentation for ${commandDoc.command} command`}
+            >
               <div className="hint-panel-documentation-section">
                 <div className="hint-panel-documentation-label">Description:</div>
                 <div className="hint-panel-documentation-text">{commandDoc.description}</div>
               </div>
               <div className="hint-panel-documentation-section">
                 <div className="hint-panel-documentation-label">Usage:</div>
-                <div className="hint-panel-documentation-code">{commandDoc.usage}</div>
+                <div className="hint-panel-documentation-code" role="code">{commandDoc.usage}</div>
               </div>
               <div className="hint-panel-documentation-section">
                 <div className="hint-panel-documentation-label">Examples:</div>
                 <div className="hint-panel-documentation-examples">
                   {commandDoc.examples.map((example, index) => (
-                    <div key={index} className="hint-panel-documentation-code">
+                    <div key={index} className="hint-panel-documentation-code" role="code">
                       {example}
                     </div>
                   ))}
@@ -227,6 +265,7 @@ export const HintPanel: React.FC<HintPanelProps> = ({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hint-panel-documentation-link"
+                aria-label={`Learn more about ${commandDoc.command} command (opens in new tab)`}
               >
                 Learn more →
               </a>
@@ -236,25 +275,41 @@ export const HintPanel: React.FC<HintPanelProps> = ({
       )}
 
       {/* Hint Button */}
-      <div className="hint-panel-controls">
+      <div className="hint-panel-controls" role="group" aria-label="Hint controls">
         <button
           className="hint-panel-button hint-panel-button-show"
           onClick={handleShowHint}
           disabled={isLoading || hintsRemaining === 0}
+          aria-label={
+            isLoading 
+              ? 'Loading hint' 
+              : hintsRemaining === 0 
+              ? 'No hints remaining' 
+              : `Show hint. ${hintsRemaining} hints remaining`
+          }
+          aria-busy={isLoading}
         >
           {isLoading ? 'Loading...' : hintsRemaining === 0 ? 'No Hints Left' : 'Show Hint'}
         </button>
-        <div className="hint-panel-info">
+        <div className="hint-panel-info" role="status" aria-live="polite">
           <div className="hint-panel-info-item">
             <span className="hint-panel-info-label">Hints Used:</span>
-            <span className="hint-panel-info-value">
+            <span 
+              className="hint-panel-info-value"
+              aria-label={`${tracking?.hints_shown || 0} of ${totalHints} hints used`}
+            >
               {tracking?.hints_shown || 0} / {totalHints}
             </span>
           </div>
           {(tracking?.hints_shown || 0) > 0 && (
             <div className="hint-panel-info-item hint-panel-info-warning">
               <span className="hint-panel-info-label">XP Penalty:</span>
-              <span className="hint-panel-info-value">{xpPenaltyPercent}%</span>
+              <span 
+                className="hint-panel-info-value"
+                aria-label={`Experience point penalty: ${xpPenaltyPercent} percent`}
+              >
+                {xpPenaltyPercent}%
+              </span>
             </div>
           )}
         </div>
